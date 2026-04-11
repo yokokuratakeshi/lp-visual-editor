@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LP Visual Editor</title>
+<style>
+/* ===== リセット・基本スタイル ===== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+  background: #0f0f1a;
+  color: #e8e8e8;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ===== アップロード画面 ===== */
+#upload-screen {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #0f0f1a;
+  z-index: 10000;
+}
+.upload-area {
+  width: 440px;
+  height: 270px;
+  border: 2px dashed rgba(255,255,255,0.25);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.upload-area:hover, .upload-area.dragover {
+  border-color: #2563eb;
+  background: rgba(37,99,235,0.05);
+}
+.upload-icon { font-size: 52px; margin-bottom: 16px; }
+.upload-text { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+.upload-sub { font-size: 13px; color: rgba(255,255,255,0.45); }
+#file-input { display: none; }
+
+/* ===== ヘッダー ===== */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  background: #16213e;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  height: 48px;
+  gap: 10px;
+}
+.header-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  white-space: nowrap;
+}
+.header-title .accent { color: #2563eb; }
+.header-sep {
+  width: 1px;
+  height: 24px;
+  background: rgba(255,255,255,0.12);
+}
+
+/* ===== レスポンシブ切替ボタン ===== */
+.responsive-btns {
+  display: flex;
+  gap: 4px;
+}
+.resp-btn {
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.resp-btn:hover {
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+}
+.resp-btn.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #fff;
+}
+
+/* ===== 元に戻す・やり直し ===== */
+.undo-redo-btns {
+  display: flex;
+  gap: 4px;
+}
+.ur-btn {
+  padding: 5px 10px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.ur-btn:hover:not(:disabled) {
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+}
+.ur-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+/* ===== ヘッダーアクション ===== */
+.header-spacer { flex: 1; }
+.header-actions {
+  display: flex;
+  gap: 6px;
+}
+.btn {
+  padding: 6px 14px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.btn-primary { background: #2563eb; color: #fff; }
+.btn-primary:hover { background: #3b82f6; }
+.btn-ghost {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+}
+.btn-ghost:hover { background: rgba(255,255,255,0.2); }
+.btn-download { background: #16a34a; color: #fff; }
+.btn-download:hover { background: #22c55e; }
+
+/* ===== メインレイアウト ===== */
+.main-layout {
+  display: flex;
+  height: calc(100vh - 48px);
+}
+
+/* ===== 左サイドバー（セクション管理） ===== */
+.sidebar {
+  width: 220px;
+  background: #1e1b4b;
+  border-right: 1px solid rgba(255,255,255,0.06);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 12px 12px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.5);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.15) transparent;
+}
+.sidebar-list::-webkit-scrollbar { width: 4px; }
+.sidebar-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+/* ===== セクションアイテム ===== */
+.section-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  margin: 2px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  border: 1px solid transparent;
+}
+.section-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+.section-item.active {
+  background: rgba(37,99,235,0.3);
+  border-color: rgba(37,99,235,0.5);
+}
+.section-item .drag-handle {
+  cursor: grab;
+  color: rgba(255,255,255,0.3);
+  font-size: 12px;
+  flex-shrink: 0;
+}
+.section-item .sec-label {
+  flex: 1;
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.section-item .sec-actions {
+  display: flex;
+  gap: 2px;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.section-item:hover .sec-actions { opacity: 1; }
+.sec-action-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.6);
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  padding: 0;
+}
+.sec-action-btn:hover {
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+}
+.sec-action-btn.hidden-sec {
+  color: rgba(255,255,255,0.25);
+}
+.section-item.dragging { opacity: 0.3; }
+.section-item.drag-over-top { box-shadow: inset 0 2px 0 #2563eb; }
+.section-item.drag-over-bottom { box-shadow: inset 0 -2px 0 #2563eb; }
+
+/* ===== セクション追加ボタン ===== */
+.sidebar-footer {
+  padding: 8px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.add-section-btn {
+  width: 100%;
+  padding: 8px;
+  border: 1px dashed rgba(255,255,255,0.25);
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+.add-section-btn:hover {
+  border-color: #2563eb;
+  color: #2563eb;
+  background: rgba(37,99,235,0.05);
+}
+
+/* ===== プレビューエリア ===== */
+.preview-area {
+  flex: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  background: #1a1a2e;
+  position: relative;
+  overflow: auto;
+  padding: 20px;
+}
+.preview-container {
+  position: relative;
+  background: #fff;
+  box-shadow: 0 4px 40px rgba(0,0,0,0.4);
+  border-radius: 4px;
+  overflow: hidden;
+  transition: width 0.3s ease;
+}
+#preview-iframe {
+  border: none;
+  display: block;
+  width: 100%;
+  background: #fff;
+  transform-origin: top left;
+}
+
+/* ===== CTAミニマップ ===== */
+.minimap {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  background: rgba(0,0,0,0.5);
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid rgba(255,255,255,0.15);
+}
+.minimap-cta {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  height: 3px;
+  background: #dc2626;
+  border-radius: 2px;
+}
+.minimap-viewport {
+  position: absolute;
+  left: 0;
+  right: 0;
+  background: rgba(37,99,235,0.25);
+  border: 1px solid rgba(37,99,235,0.5);
+  pointer-events: none;
+}
+
+/* ===== 右パネル（タブ付き） ===== */
+.edit-panel {
+  width: 340px;
+  background: #fafafa;
+  border-left: 1px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  color: #333;
+  overflow: hidden;
+}
+
+/* ===== タブバー ===== */
+.tab-bar {
+  display: flex;
+  background: #f0f0f0;
+  border-bottom: 1px solid #ddd;
+  overflow-x: auto;
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+.tab-btn:hover { color: #555; }
+.tab-btn.active {
+  color: #2563eb;
+  border-bottom-color: #2563eb;
+  background: #fff;
+}
+
+/* ===== タブコンテンツ ===== */
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: none;
+}
+.tab-content.active { display: block; }
+.tab-content::-webkit-scrollbar { width: 6px; }
+.tab-content::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+/* ===== 共通フォーム部品 ===== */
+.panel-section {
+  margin-bottom: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #eee;
+}
+.panel-section:last-child { border-bottom: none; }
+.panel-section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #444;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.panel-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  margin-bottom: 4px;
+  display: block;
+}
+.panel-input {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  transition: border-color 0.2s;
+  margin-bottom: 8px;
+}
+.panel-input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+.panel-textarea {
+  width: 100%;
+  padding: 7px 10px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 12px;
+  font-family: inherit;
+  background: #fff;
+  resize: vertical;
+  min-height: 60px;
+  transition: border-color 0.2s;
+  margin-bottom: 8px;
+  line-height: 1.6;
+}
+.panel-textarea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37,99,235,0.08);
+}
+.panel-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.panel-row label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #888;
+  white-space: nowrap;
+  min-width: 60px;
+}
+.panel-row input[type="number"] {
+  width: 70px;
+  padding: 5px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  font-family: inherit;
+}
+.panel-row input[type="number"]:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+.panel-row input[type="color"] {
+  width: 36px;
+  height: 28px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 1px;
+}
+
+/* ===== テキスト編集色ボタン ===== */
+.color-btns {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+  align-items: center;
+}
+.color-btn {
+  padding: 4px 10px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  background: #fff;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.color-btn-green { color: #16a34a; border-color: #86efac; }
+.color-btn-green:hover { background: #f0fdf4; }
+.color-btn-red { color: #dc2626; border-color: #fca5a5; }
+.color-btn-red:hover { background: #fef2f2; }
+.color-btn-reset { color: #888; }
+.color-btn-reset:hover { background: #f5f5f5; }
+
+/* ===== CTAカード ===== */
+.cta-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.cta-card:hover {
+  border-color: #2563eb;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.1);
+}
+.cta-card.editing {
+  border-color: #2563eb;
+  box-shadow: 0 2px 12px rgba(37,99,235,0.15);
+}
+.cta-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.cta-preview-btn {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cta-card-fields { display: none; }
+.cta-card.editing .cta-card-fields { display: block; }
+
+/* ===== OGPプレビューカード ===== */
+.ogp-preview-card {
+  border: 1px solid #ddd;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #fff;
+  margin-bottom: 16px;
+}
+.ogp-image-area {
+  height: 140px;
+  background: #e5e7eb;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  font-size: 12px;
+}
+.ogp-text-area {
+  padding: 12px;
+}
+.ogp-text-area .ogp-t {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1d1d1f;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ogp-text-area .ogp-d {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.ogp-text-area .ogp-u {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+/* ===== カラースウォッチ ===== */
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.color-swatch {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  border: 2px solid #e5e7eb;
+  cursor: pointer;
+  transition: all 0.15s;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+.color-swatch:hover {
+  transform: scale(1.15);
+  border-color: #2563eb;
+  z-index: 2;
+}
+.color-swatch .count-badge {
+  font-size: 8px;
+  font-weight: 700;
+  color: #fff;
+  background: rgba(0,0,0,0.5);
+  padding: 1px 3px;
+  border-radius: 2px;
+  margin-bottom: 2px;
+}
+
+/* ===== リンク一覧 ===== */
+.link-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 6px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.link-item:hover { border-color: #93c5fd; }
+.link-item.broken {
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+.link-text {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.link-url {
+  color: #2563eb;
+  word-break: break-all;
+  font-size: 10px;
+}
+.link-url.empty {
+  color: #dc2626;
+  font-style: italic;
+}
+
+/* ===== 画像情報 ===== */
+.img-info-item {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.img-info-item:hover { border-color: #93c5fd; }
+.img-info-thumb {
+  width: 48px;
+  height: 48px;
+  border-radius: 4px;
+  object-fit: cover;
+  background: #f3f4f6;
+  flex-shrink: 0;
+}
+.img-info-details {
+  flex: 1;
+  min-width: 0;
+}
+.img-info-name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.img-info-size {
+  font-size: 10px;
+  color: #6b7280;
+}
+.img-info-warn {
+  font-size: 10px;
+  color: #ea580c;
+  font-weight: 600;
+}
+.img-total-weight {
+  padding: 10px;
+  background: #f0f4ff;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #2563eb;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+/* ===== 余白コントロール ===== */
+.spacing-visual {
+  width: 180px;
+  margin: 0 auto 16px;
+  position: relative;
+}
+.spacing-box {
+  width: 100%;
+  height: 80px;
+  border: 2px dashed #d1d5db;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  color: #9ca3af;
+  position: relative;
+}
+.spacing-label-top, .spacing-label-bottom {
+  text-align: center;
+  font-size: 10px;
+  color: #6b7280;
+  padding: 4px 0;
+}
+
+/* ===== テンプレートモーダル ===== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 20000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-box {
+  background: #fff;
+  border-radius: 16px;
+  padding: 28px;
+  width: 520px;
+  max-width: 90vw;
+  max-height: 80vh;
+  overflow-y: auto;
+  color: #333;
+}
+.modal-title {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 16px;
+  color: #111;
+}
+.template-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.template-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.template-card:hover {
+  border-color: #2563eb;
+  background: #f0f4ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37,99,235,0.1);
+}
+.template-card-icon {
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.template-card-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 4px;
+}
+.template-card-desc {
+  font-size: 11px;
+  color: #6b7280;
+}
+.modal-close {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 8px;
+  background: #f3f4f6;
+  color: #6b7280;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+}
+.modal-close:hover { background: #e5e7eb; }
+
+/* ===== URL一括置換 ===== */
+.bulk-replace-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+/* ===== 通知トースト ===== */
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-20px);
+  background: #2563eb;
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s, transform 0.3s;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ===== CTAチェッカー警告バナー ===== */
+.cta-warning-banner {
+  padding: 8px 12px;
+  background: #fef3c7;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #92400e;
+  margin-bottom: 12px;
+  display: none;
+}
+.cta-warning-banner.show { display: block; }
+
+/* ===== 空メッセージ ===== */
+.empty-msg {
+  color: #aaa;
+  font-size: 12px;
+  text-align: center;
+  padding: 30px 16px;
+}
+
+/* ===== 小型ボタン ===== */
+.btn-sm {
+  padding: 5px 12px;
+  border: none;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+.btn-sm-primary { background: #2563eb; color: #fff; }
+.btn-sm-primary:hover { background: #3b82f6; }
+
+/* ===== 選択テキスト情報パネル ===== */
+.selected-text-info {
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  display: none;
+}
+.selected-text-info.show { display: block; }
+.selected-text-tag {
+  font-size: 10px;
+  color: #2563eb;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.selected-text-preview {
+  font-size: 12px;
+  color: #333;
+  max-height: 60px;
+  overflow: hidden;
+  line-height: 1.5;
+}
+
+/* ===== CTAチェッカーセクション ===== */
+.checker-section {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+.checker-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+.checker-stat .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-green { background: #16a34a; }
+.dot-red { background: #dc2626; }
+.dot-yellow { background: #eab308; }
+</style>
+</head>
+<body>
+
+<!-- ===== アップロード画面 ===== -->
+<div id="upload-screen">
+  <div style="text-align:center;margin-bottom:40px;">
+    <div style="font-size:42px;font-weight:900;letter-spacing:-0.03em;color:#fff;line-height:1.1;">
+      <span style="color:#2563eb;">LP</span> Visual Editor
+    </div>
+    <div style="font-size:13px;color:rgba(255,255,255,0.35);margin-top:8px;letter-spacing:0.15em;">EDIT &middot; OPTIMIZE &middot; CONVERT</div>
+  </div>
+  <div class="upload-area" id="upload-area">
+    <div class="upload-icon">&#128196;</div>
+    <div class="upload-text">LPのHTMLファイルをドロップ</div>
+    <div class="upload-sub">またはクリックしてファイルを選択</div>
+  </div>
+  <input type="file" id="file-input" accept=".html,.htm">
+</div>
+
+<!-- ===== エディター画面 ===== -->
+<div id="editor-screen" style="display:none;">
+  <!-- ヘッダー -->
+  <div class="header">
+    <div class="header-title"><span class="accent">&#9650;</span> LPエディター</div>
+    <div class="header-sep"></div>
+    <!-- レスポンシブ切替 -->
+    <div class="responsive-btns">
+      <button class="resp-btn" data-width="375" title="スマホ">&#128241;375</button>
+      <button class="resp-btn" data-width="768" title="タブレット">&#128241;768</button>
+      <button class="resp-btn active" data-width="1280" title="デスクトップ">&#128187;1280</button>
+    </div>
+    <div class="header-sep"></div>
+    <!-- 元に戻す・やり直し -->
+    <div class="undo-redo-btns">
+      <button class="ur-btn" id="undo-btn" disabled title="元に戻す (Ctrl+Z)">&#8617;</button>
+      <button class="ur-btn" id="redo-btn" disabled title="やり直す (Ctrl+Y)">&#8618;</button>
+    </div>
+    <div class="header-spacer"></div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="reload-btn">別のファイル</button>
+      <button class="btn btn-download" id="download-btn">&#11015; ダウンロード</button>
+    </div>
+  </div>
+
+  <!-- メインレイアウト -->
+  <div class="main-layout">
+    <!-- 左サイドバー -->
+    <div class="sidebar">
+      <div class="sidebar-header">セクション一覧</div>
+      <div class="sidebar-list" id="sidebar-list"></div>
+      <div class="sidebar-footer">
+        <button class="add-section-btn" id="add-section-btn">＋ セクションを追加</button>
+      </div>
+    </div>
+
+    <!-- プレビューエリア -->
+    <div class="preview-area" id="preview-area">
+      <div class="preview-container" id="preview-container">
+        <iframe id="preview-iframe"></iframe>
+      </div>
+      <!-- CTAミニマップ -->
+      <div class="minimap" id="minimap" style="display:none;"></div>
+    </div>
+
+    <!-- 右パネル -->
+    <div class="edit-panel">
+      <!-- タブバー -->
+      <div class="tab-bar">
+        <button class="tab-btn active" data-tab="tab-text">テキスト</button>
+        <button class="tab-btn" data-tab="tab-cta">CTA</button>
+        <button class="tab-btn" data-tab="tab-link">リンク</button>
+        <button class="tab-btn" data-tab="tab-ogp">OGP</button>
+        <button class="tab-btn" data-tab="tab-color">カラー</button>
+        <button class="tab-btn" data-tab="tab-spacing">余白</button>
+        <button class="tab-btn" data-tab="tab-images">画像</button>
+      </div>
+
+      <!-- テキストタブ -->
+      <div class="tab-content active" id="tab-text">
+        <div class="panel-section">
+          <div class="panel-section-title">&#128221; インラインテキスト編集</div>
+          <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:10px;">
+            プレビュー内のテキストをクリックして直接編集できます。<br>
+            画像をクリックすると画像の差し替えができます。<br>
+            選択するとここに詳細が表示されます。
+          </p>
+        </div>
+        <!-- 選択テキスト情報 -->
+        <div class="selected-text-info" id="selected-text-info">
+          <div class="selected-text-tag" id="selected-text-tag"></div>
+          <div class="selected-text-preview" id="selected-text-preview"></div>
+          <div style="margin-top:10px;">
+            <div class="panel-row">
+              <label>文字サイズ</label>
+              <input type="number" id="text-fontsize" min="8" max="200" value="16">
+              <span style="font-size:11px;color:#888;">px</span>
+            </div>
+            <div class="panel-label">文字色</div>
+            <div class="color-btns">
+              <button class="color-btn color-btn-green" onclick="applyTextColor('#16a34a')">緑色</button>
+              <button class="color-btn color-btn-red" onclick="applyTextColor('#dc2626')">赤色</button>
+              <input type="color" id="text-custom-color" value="#000000" style="width:28px;height:24px;border:1px solid #ddd;border-radius:3px;cursor:pointer;vertical-align:middle;">
+              <button class="color-btn color-btn-reset" onclick="applyTextColor('')">リセット</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CTAタブ -->
+      <div class="tab-content" id="tab-cta">
+        <div class="panel-section-title">&#128680; CTAボタン管理</div>
+        <!-- CTA警告 -->
+        <div class="cta-warning-banner" id="cta-warning">
+          &#9888; ファーストビューにCTAがありません。スクロールせずに見える範囲にCTAを配置しましょう。
+        </div>
+        <!-- CTAチェッカー統計 -->
+        <div class="checker-section" id="cta-checker">
+          <div style="font-size:11px;font-weight:700;color:#444;margin-bottom:8px;">CTA配置チェッカー</div>
+          <div id="cta-checker-stats"></div>
+        </div>
+        <div id="cta-list"></div>
+      </div>
+
+      <!-- リンクタブ -->
+      <div class="tab-content" id="tab-link">
+        <div class="panel-section-title">&#128279; リンク管理</div>
+        <!-- URL一括置換 -->
+        <div class="bulk-replace-box">
+          <div class="panel-label">URL一括置換</div>
+          <input type="text" class="panel-input" id="link-find" placeholder="検索するURL（部分一致）">
+          <input type="text" class="panel-input" id="link-replace" placeholder="置換後のURL">
+          <button class="btn-sm btn-sm-primary" onclick="bulkReplaceURLs()">一括置換</button>
+        </div>
+        <div id="link-list"></div>
+      </div>
+
+      <!-- OGPタブ -->
+      <div class="tab-content" id="tab-ogp">
+        <div class="panel-section-title">&#128064; OGP / SEO設定</div>
+        <!-- ソーシャルプレビュー -->
+        <div class="ogp-preview-card" id="ogp-preview">
+          <div class="ogp-image-area" id="ogp-image-area">画像未設定</div>
+          <div class="ogp-text-area">
+            <div class="ogp-t" id="ogp-preview-title">ページタイトル</div>
+            <div class="ogp-d" id="ogp-preview-desc">ページの説明文</div>
+            <div class="ogp-u" id="ogp-preview-url">example.com</div>
+          </div>
+        </div>
+        <!-- OGPフォーム -->
+        <div class="panel-section">
+          <div class="panel-label">タイトル (title)</div>
+          <input type="text" class="panel-input" id="ogp-title" oninput="updateOGP()">
+          <div class="panel-label">説明文 (meta description)</div>
+          <textarea class="panel-textarea" id="ogp-desc" rows="2" oninput="updateOGP()"></textarea>
+          <div class="panel-label">og:title</div>
+          <input type="text" class="panel-input" id="ogp-og-title" oninput="updateOGP()">
+          <div class="panel-label">og:description</div>
+          <textarea class="panel-textarea" id="ogp-og-desc" rows="2" oninput="updateOGP()"></textarea>
+          <div class="panel-label">og:image (URL)</div>
+          <input type="text" class="panel-input" id="ogp-og-image" oninput="updateOGP()">
+          <div class="panel-label">og:type</div>
+          <input type="text" class="panel-input" id="ogp-og-type" value="website" oninput="updateOGP()">
+          <div class="panel-label">twitter:card</div>
+          <select class="panel-input" id="ogp-twitter-card" onchange="updateOGP()" style="cursor:pointer;">
+            <option value="summary">summary</option>
+            <option value="summary_large_image" selected>summary_large_image</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- カラータブ -->
+      <div class="tab-content" id="tab-color">
+        <div class="panel-section-title">&#127912; カラーテーマ管理</div>
+        <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:12px;">
+          LP内で使われている色を検出。クリックで一括変更できます。
+        </p>
+        <div id="color-swatch-area"></div>
+      </div>
+
+      <!-- 余白タブ -->
+      <div class="tab-content" id="tab-spacing">
+        <div class="panel-section-title">&#8596; セクション余白調整</div>
+        <div id="spacing-controls">
+          <p class="empty-msg">左サイドバーでセクションを選択してください</p>
+        </div>
+      </div>
+
+      <!-- 画像タブ -->
+      <div class="tab-content" id="tab-images">
+        <div class="panel-section-title">&#128247; 画像情報</div>
+        <div class="img-total-weight" id="img-total-weight">総画像サイズ: 計算中...</div>
+        <div id="img-info-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== テンプレートモーダル ===== -->
+<div class="modal-overlay" id="template-modal">
+  <div class="modal-box">
+    <div class="modal-title">セクションテンプレート</div>
+    <div class="template-grid">
+      <div class="template-card" onclick="insertTemplate('faq')">
+        <div class="template-card-icon">&#10067;</div>
+        <div class="template-card-name">FAQアコーディオン</div>
+        <div class="template-card-desc">よくある質問と回答の開閉式リスト</div>
+      </div>
+      <div class="template-card" onclick="insertTemplate('testimonial')">
+        <div class="template-card-icon">&#128172;</div>
+        <div class="template-card-name">お客様の声</div>
+        <div class="template-card-desc">引用文、名前、役職付き</div>
+      </div>
+      <div class="template-card" onclick="insertTemplate('cta-banner')">
+        <div class="template-card-icon">&#128276;</div>
+        <div class="template-card-name">CTAバナー</div>
+        <div class="template-card-desc">全幅カラーバナー＋ボタン</div>
+      </div>
+      <div class="template-card" onclick="insertTemplate('divider')">
+        <div class="template-card-icon">&#10134;</div>
+        <div class="template-card-name">区切り線</div>
+        <div class="template-card-desc">シンプルな水平線セクション</div>
+      </div>
+      <div class="template-card" onclick="insertTemplate('countdown')">
+        <div class="template-card-icon">&#9200;</div>
+        <div class="template-card-name">カウントダウン</div>
+        <div class="template-card-desc">タイマー表示（HTML/CSS）</div>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeTemplateModal()">閉じる</button>
+  </div>
+</div>
+
+<!-- ===== 通知トースト ===== -->
+<div class="toast" id="toast"></div>
+
+<!-- ===== 画像置換用の非表示input ===== -->
+<input type="file" id="img-replace-input" accept="image/*" style="display:none;">
+
+<script>
+/* =====================================================
+   ステート管理
+   ===================================================== */
+let iframeDoc = null;          // iframe内のdocument
+let sections = [];             // 検出されたセクション要素の配列
+let selectedSectionIdx = -1;   // 選択中のセクションインデックス
+let selectedTextEl = null;     // 選択中のテキスト要素（iframe内）
+let currentResponsiveWidth = 1280; // 現在のレスポンシブ幅
+let originalHTML = '';         // 読み込んだHTMLの元データ
+let fileName = 'lp.html';     // ファイル名
+
+/* ===== 元に戻す・やり直し ===== */
+let undoStack = [];
+let redoStack = [];
+const MAX_UNDO = 30;
+
+/* ===== 画像置換対象 ===== */
+let imageReplaceTarget = null;
+
+/* =====================================================
+   DOM参照の取得
+   ===================================================== */
+const uploadScreen = document.getElementById('upload-screen');
+const editorScreen = document.getElementById('editor-screen');
+const uploadArea = document.getElementById('upload-area');
+const fileInput = document.getElementById('file-input');
+const previewIframe = document.getElementById('preview-iframe');
+const previewContainer = document.getElementById('preview-container');
+const previewArea = document.getElementById('preview-area');
+const sidebarList = document.getElementById('sidebar-list');
+
+/* =====================================================
+   アップロード画面のイベント処理
+   ===================================================== */
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => {
+  e.preventDefault();
+  uploadArea.classList.add('dragover');
+});
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file && (file.name.endsWith('.html') || file.name.endsWith('.htm'))) {
+    loadFile(file);
+  }
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadFile(e.target.files[0]);
+});
+
+/* ===== ファイル読み込み ===== */
+function loadFile(file) {
+  fileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    originalHTML = e.target.result;
+    initEditor(originalHTML);
+  };
+  reader.readAsText(file);
+}
+
+/* ===== エディター初期化 ===== */
+function initEditor(html) {
+  uploadScreen.style.display = 'none';
+  editorScreen.style.display = '';
+
+  // iframeにHTMLを書き込む
+  const iframe = previewIframe;
+  iframe.srcdoc = html;
+  iframe.onload = () => {
+    iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+
+    // iframe内のクリックイベントを監視
+    setupIframeEvents();
+
+    // セクション検出
+    detectSections();
+    renderSidebar();
+
+    // 各タブのデータ初期化
+    refreshAllTabs();
+
+    // レスポンシブ初期設定
+    setResponsiveMode(currentResponsiveWidth);
+
+    // 初回状態を保存
+    undoStack = [];
+    redoStack = [];
+    saveState();
+
+    // ミニマップの更新
+    updateMinimap();
+  };
+}
+
+/* =====================================================
+   iframe内イベントの設定
+   ===================================================== */
+function setupIframeEvents() {
+  if (!iframeDoc) return;
+
+  // テキスト要素のクリック → インライン編集 / 画像クリック → 画像置換
+  iframeDoc.addEventListener('click', e => {
+    const el = e.target;
+
+    // 画像クリック → 画像置換
+    if (el.tagName === 'IMG') {
+      e.preventDefault();
+      e.stopPropagation();
+      imageReplaceTarget = el;
+      document.getElementById('img-replace-input').click();
+      return;
+    }
+
+    // テキスト要素のクリック → 編集モード
+    if (isTextElement(el)) {
+      e.preventDefault();
+      selectTextElement(el);
+    }
+  });
+
+  // contentEditable入力時に状態保存（デバウンス付き）
+  iframeDoc.addEventListener('input', () => {
+    clearTimeout(window._saveTimer);
+    window._saveTimer = setTimeout(() => {
+      saveState();
+      refreshAllTabs();
+    }, 500);
+  });
+}
+
+/* ===== テキスト要素かどうかの判定 ===== */
+function isTextElement(el) {
+  if (!el || !el.tagName) return false;
+  const textTags = ['H1','H2','H3','H4','H5','H6','P','SPAN','LI','A','STRONG','EM','B','I','LABEL','TD','TH','FIGCAPTION','BLOCKQUOTE','DT','DD'];
+  if (textTags.includes(el.tagName)) return true;
+  // divやsectionでも、テキストのみを含む短い要素は対象
+  if (['DIV','SECTION'].includes(el.tagName)) {
+    if (el.children.length === 0 && el.textContent.trim().length > 0 && el.textContent.trim().length < 500) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/* ===== テキスト要素の選択 ===== */
+function selectTextElement(el) {
+  // 以前の選択を解除
+  if (selectedTextEl) {
+    selectedTextEl.contentEditable = 'false';
+    selectedTextEl.style.outline = '';
+    selectedTextEl.style.outlineOffset = '';
+  }
+  selectedTextEl = el;
+  el.contentEditable = 'true';
+  el.style.outline = '2px solid #2563eb';
+  el.style.outlineOffset = '2px';
+  el.focus();
+
+  // タブをテキストタブに切替
+  switchTab('tab-text');
+
+  // 選択情報を表示
+  const info = document.getElementById('selected-text-info');
+  const tag = document.getElementById('selected-text-tag');
+  const preview = document.getElementById('selected-text-preview');
+  info.classList.add('show');
+  tag.textContent = '<' + el.tagName.toLowerCase() + '>' + (el.className ? '.' + el.className.toString().split(' ')[0] : '');
+  preview.textContent = el.textContent.substring(0, 100) + (el.textContent.length > 100 ? '...' : '');
+
+  // フォントサイズを取得
+  const cs = iframeDoc.defaultView.getComputedStyle(el);
+  document.getElementById('text-fontsize').value = parseInt(cs.fontSize) || 16;
+
+  // blur時に編集モードを解除して状態保存
+  el.addEventListener('blur', function handler() {
+    el.contentEditable = 'false';
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+    el.removeEventListener('blur', handler);
+    saveState();
+  }, { once: true });
+}
+
+/* ===== テキスト色の適用 ===== */
+function applyTextColor(color) {
+  if (!selectedTextEl) return;
+  if (color) {
+    selectedTextEl.style.color = color;
+  } else {
+    selectedTextEl.style.removeProperty('color');
+  }
+  saveState();
+}
+
+/* ===== フォントサイズ変更 ===== */
+document.getElementById('text-fontsize').addEventListener('change', e => {
+  if (!selectedTextEl) return;
+  selectedTextEl.style.fontSize = e.target.value + 'px';
+  saveState();
+});
+
+/* ===== カスタムカラー変更 ===== */
+document.getElementById('text-custom-color').addEventListener('input', e => {
+  if (!selectedTextEl) return;
+  selectedTextEl.style.color = e.target.value;
+  saveState();
+});
+
+/* ===== 画像置換処理 ===== */
+document.getElementById('img-replace-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file || !imageReplaceTarget) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    imageReplaceTarget.src = ev.target.result;
+    imageReplaceTarget = null;
+    saveState();
+    refreshImageInfo();
+    showToast('画像を置換しました');
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+/* =====================================================
+   セクション検出アルゴリズム
+   ===================================================== */
+function detectSections() {
+  sections = [];
+  if (!iframeDoc) return;
+  const body = iframeDoc.body;
+  if (!body) return;
+
+  // 1. <section>タグが2つ以上あればそれを使う
+  const sectionTags = body.querySelectorAll('section');
+  if (sectionTags.length >= 2) {
+    sectionTags.forEach(el => sections.push(el));
+    return;
+  }
+
+  // 2. <main>があればその直下のブロック子要素を使う
+  const main = body.querySelector('main');
+  if (main) {
+    Array.from(main.children).forEach(el => {
+      if (isVisibleBlockElement(el)) sections.push(el);
+    });
+    if (sections.length >= 2) return;
+    sections = [];
+  }
+
+  // 3. bodyの直下の見えるブロック要素を使う
+  Array.from(body.children).forEach(el => {
+    if (isVisibleBlockElement(el)) sections.push(el);
+  });
+}
+
+/* ===== 見えるブロック要素かどうかの判定 ===== */
+function isVisibleBlockElement(el) {
+  if (!el || !el.tagName) return false;
+  const skip = ['SCRIPT','STYLE','LINK','META','NOSCRIPT','BR','HR'];
+  if (skip.includes(el.tagName)) return false;
+  try {
+    const cs = iframeDoc.defaultView.getComputedStyle(el);
+    if (cs.display === 'none' || cs.visibility === 'hidden') return false;
+  } catch(e) {}
+  if (el.offsetHeight < 5) return false;
+  return true;
+}
+
+/* ===== セクションラベルの取得 ===== */
+function getSectionLabel(el, idx) {
+  // 見出しテキストがあればそれを使う
+  const heading = el.querySelector('h1, h2, h3');
+  if (heading && heading.textContent.trim()) {
+    const t = heading.textContent.trim();
+    return t.length > 25 ? t.substring(0, 25) + '...' : t;
+  }
+  // idがあれば使う
+  if (el.id) return '#' + el.id;
+  // クラス名があれば使う
+  if (el.className && typeof el.className === 'string') {
+    const cls = el.className.split(' ')[0];
+    if (cls) return '.' + cls;
+  }
+  return 'セクション ' + (idx + 1);
+}
+
+/* =====================================================
+   サイドバーの描画
+   ===================================================== */
+function renderSidebar() {
+  sidebarList.innerHTML = '';
+  sections.forEach((sec, i) => {
+    const item = document.createElement('div');
+    item.className = 'section-item' + (i === selectedSectionIdx ? ' active' : '');
+    item.draggable = true;
+    item.dataset.idx = i;
+
+    const isHidden = sec.style.display === 'none';
+
+    item.innerHTML =
+      '<span class="drag-handle">&#9776;</span>' +
+      '<span class="sec-label">' + escapeHtml(getSectionLabel(sec, i)) + '</span>' +
+      '<span class="sec-actions">' +
+        '<button class="sec-action-btn" data-action="copy" data-idx="' + i + '" title="コピー">&#128203;</button>' +
+        '<button class="sec-action-btn ' + (isHidden ? 'hidden-sec' : '') + '" data-action="toggle" data-idx="' + i + '" title="表示切替">' + (isHidden ? '&#128065;' : '&#128064;') + '</button>' +
+        '<button class="sec-action-btn" data-action="delete" data-idx="' + i + '" title="削除">&#128465;</button>' +
+      '</span>';
+
+    // セクション操作ボタンのクリック
+    item.querySelectorAll('.sec-action-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        const idx = parseInt(btn.dataset.idx);
+        if (action === 'copy') copySection(idx);
+        else if (action === 'toggle') toggleSection(idx);
+        else if (action === 'delete') deleteSection(idx);
+      });
+    });
+
+    // クリック → プレビューのスクロール＋選択
+    item.addEventListener('click', () => {
+      selectedSectionIdx = i;
+      renderSidebar();
+      scrollToSection(i);
+      updateSpacingControls(i);
+      switchTab('tab-spacing');
+    });
+
+    // ドラッグ＆ドロップによる並べ替え
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', String(i));
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => {
+      item.classList.remove('dragging');
+      sidebarList.querySelectorAll('.section-item').forEach(el => {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+      });
+    });
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      const rect = item.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      item.classList.remove('drag-over-top', 'drag-over-bottom');
+      if (e.clientY < mid) {
+        item.classList.add('drag-over-top');
+      } else {
+        item.classList.add('drag-over-bottom');
+      }
+    });
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      item.classList.remove('drag-over-top', 'drag-over-bottom');
+      const fromIdx = parseInt(e.dataTransfer.getData('text/plain'));
+      const rect = item.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      const insertBefore = e.clientY < mid;
+      reorderSection(fromIdx, i, insertBefore);
+    });
+
+    sidebarList.appendChild(item);
+  });
+}
+
+/* ===== セクション操作関数群 ===== */
+function scrollToSection(idx) {
+  if (!iframeDoc || !sections[idx]) return;
+  sections[idx].scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function copySection(idx) {
+  if (!iframeDoc || !sections[idx]) return;
+  const clone = sections[idx].cloneNode(true);
+  sections[idx].parentNode.insertBefore(clone, sections[idx].nextSibling);
+  saveState();
+  detectSections();
+  renderSidebar();
+  refreshAllTabs();
+  showToast('セクションをコピーしました');
+}
+
+function toggleSection(idx) {
+  if (!sections[idx]) return;
+  if (sections[idx].style.display === 'none') {
+    sections[idx].style.display = '';
+  } else {
+    sections[idx].style.display = 'none';
+  }
+  saveState();
+  renderSidebar();
+}
+
+function deleteSection(idx) {
+  if (!sections[idx]) return;
+  if (!confirm('このセクションを削除しますか？')) return;
+  sections[idx].parentNode.removeChild(sections[idx]);
+  saveState();
+  detectSections();
+  if (selectedSectionIdx >= sections.length) selectedSectionIdx = sections.length - 1;
+  renderSidebar();
+  refreshAllTabs();
+  adjustIframeHeight();
+  showToast('セクションを削除しました');
+}
+
+function reorderSection(fromIdx, toIdx, insertBefore) {
+  if (!iframeDoc || fromIdx === toIdx) return;
+  const movedEl = sections[fromIdx];
+  const targetEl = sections[toIdx];
+  const parent = movedEl.parentNode;
+
+  if (insertBefore) {
+    parent.insertBefore(movedEl, targetEl);
+  } else {
+    parent.insertBefore(movedEl, targetEl.nextSibling);
+  }
+
+  saveState();
+  detectSections();
+  renderSidebar();
+  showToast('セクション順序を変更しました');
+}
+
+/* =====================================================
+   セクションテンプレート追加
+   ===================================================== */
+document.getElementById('add-section-btn').addEventListener('click', () => {
+  document.getElementById('template-modal').classList.add('show');
+});
+
+function closeTemplateModal() {
+  document.getElementById('template-modal').classList.remove('show');
+}
+
+function insertTemplate(type) {
+  if (!iframeDoc) return;
+  const templates = {
+    'faq': `
+<section style="padding:60px 20px;max-width:800px;margin:0 auto;">
+  <h2 style="text-align:center;font-size:28px;margin-bottom:30px;">よくある質問</h2>
+  <details style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;padding:16px;">
+    <summary style="font-weight:700;font-size:16px;cursor:pointer;">Q. ここに質問を入力してください</summary>
+    <p style="margin-top:12px;color:#555;line-height:1.8;">A. ここに回答を入力してください。具体的でわかりやすい回答を心がけましょう。</p>
+  </details>
+  <details style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;padding:16px;">
+    <summary style="font-weight:700;font-size:16px;cursor:pointer;">Q. 2つ目の質問をここに</summary>
+    <p style="margin-top:12px;color:#555;line-height:1.8;">A. 2つ目の回答をここに記載します。</p>
+  </details>
+  <details style="border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;padding:16px;">
+    <summary style="font-weight:700;font-size:16px;cursor:pointer;">Q. 3つ目の質問をここに</summary>
+    <p style="margin-top:12px;color:#555;line-height:1.8;">A. 3つ目の回答をここに記載します。</p>
+  </details>
+</section>`,
+    'testimonial': `
+<section style="padding:60px 20px;background:#f8fafc;">
+  <h2 style="text-align:center;font-size:28px;margin-bottom:40px;">お客様の声</h2>
+  <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:24px;">
+    <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <p style="font-size:16px;line-height:1.8;color:#333;margin-bottom:16px;font-style:italic;">"ここにお客様の声を入力してください。具体的な成果や感想を含めると効果的です。"</p>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#e5e7eb;"></div>
+        <div>
+          <div style="font-weight:700;font-size:14px;">山田 太郎</div>
+          <div style="font-size:12px;color:#6b7280;">会社員・30代</div>
+        </div>
+      </div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:24px;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+      <p style="font-size:16px;line-height:1.8;color:#333;margin-bottom:16px;font-style:italic;">"2人目のお客様の声をここに入力。リアルな体験談が信頼感を生みます。"</p>
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:#e5e7eb;"></div>
+        <div>
+          <div style="font-weight:700;font-size:14px;">佐藤 花子</div>
+          <div style="font-size:12px;color:#6b7280;">フリーランス・40代</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>`,
+    'cta-banner': `
+<section style="padding:60px 20px;background:linear-gradient(135deg,#2563eb,#7c3aed);text-align:center;">
+  <h2 style="font-size:32px;color:#fff;margin-bottom:16px;">今すぐ始めましょう</h2>
+  <p style="font-size:16px;color:rgba(255,255,255,0.85);margin-bottom:32px;">限定特典付きで無料でお試しいただけます</p>
+  <a href="#" style="display:inline-block;padding:16px 48px;background:#fff;color:#2563eb;font-size:18px;font-weight:700;border-radius:50px;text-decoration:none;box-shadow:0 4px 16px rgba(0,0,0,0.2);">無料で申し込む</a>
+</section>`,
+    'divider': `
+<section style="padding:40px 20px;text-align:center;">
+  <hr style="border:none;border-top:1px solid #e5e7eb;max-width:600px;margin:0 auto;">
+</section>`,
+    'countdown': `
+<section style="padding:60px 20px;background:#1e1b4b;text-align:center;">
+  <h2 style="font-size:24px;color:#fff;margin-bottom:8px;">キャンペーン終了まで</h2>
+  <p style="font-size:14px;color:rgba(255,255,255,0.6);margin-bottom:24px;">お早めにお申し込みください</p>
+  <div style="display:flex;justify-content:center;gap:16px;">
+    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;min-width:80px;">
+      <div style="font-size:36px;font-weight:900;color:#fff;">03</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;">日</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;min-width:80px;">
+      <div style="font-size:36px;font-weight:900;color:#fff;">12</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;">時間</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;min-width:80px;">
+      <div style="font-size:36px;font-weight:900;color:#fff;">45</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;">分</div>
+    </div>
+    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:16px 20px;min-width:80px;">
+      <div style="font-size:36px;font-weight:900;color:#fff;">30</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.5);margin-top:4px;">秒</div>
+    </div>
+  </div>
+</section>`
+  };
+
+  const html = templates[type];
+  if (!html) return;
+
+  // bodyまたはmainの末尾に挿入
+  const target = iframeDoc.querySelector('main') || iframeDoc.body;
+  const temp = iframeDoc.createElement('div');
+  temp.innerHTML = html.trim();
+  const newSection = temp.firstElementChild;
+  target.appendChild(newSection);
+
+  saveState();
+  detectSections();
+  renderSidebar();
+  refreshAllTabs();
+  closeTemplateModal();
+  adjustIframeHeight();
+
+  // 新しいセクションにスクロール
+  setTimeout(() => {
+    selectedSectionIdx = sections.length - 1;
+    renderSidebar();
+    scrollToSection(selectedSectionIdx);
+  }, 150);
+
+  showToast('テンプレートを追加しました');
+}
+
+/* =====================================================
+   レスポンシブ表示切替
+   ===================================================== */
+document.querySelectorAll('.resp-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.resp-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const w = parseInt(btn.dataset.width);
+    currentResponsiveWidth = w;
+    setResponsiveMode(w);
+  });
+});
+
+function setResponsiveMode(width) {
+  const areaRect = previewArea.getBoundingClientRect();
+  const availW = areaRect.width - 60; // パディング分を引く
+
+  // iframeの実幅を設定
+  previewIframe.style.width = width + 'px';
+
+  // コンテナ幅とスケール計算
+  if (width > availW) {
+    const scale = availW / width;
+    previewIframe.style.transform = 'scale(' + scale + ')';
+    previewIframe.style.transformOrigin = 'top left';
+    previewContainer.style.width = Math.floor(width * scale) + 'px';
+  } else {
+    previewIframe.style.transform = 'none';
+    previewContainer.style.width = width + 'px';
+  }
+
+  // iframeの高さを自動調整
+  adjustIframeHeight();
+}
+
+function adjustIframeHeight() {
+  if (!iframeDoc) return;
+  setTimeout(() => {
+    const h = Math.max(
+      iframeDoc.documentElement ? iframeDoc.documentElement.scrollHeight : 600,
+      iframeDoc.body ? iframeDoc.body.scrollHeight : 600,
+      600
+    );
+    previewIframe.style.height = h + 'px';
+
+    // コンテナのスケール後の高さも調整
+    const transformVal = previewIframe.style.transform;
+    const scaleMatch = transformVal.match(/scale\(([\d.]+)\)/);
+    if (scaleMatch) {
+      const s = parseFloat(scaleMatch[1]);
+      previewContainer.style.height = Math.floor(h * s) + 'px';
+    } else {
+      previewContainer.style.height = h + 'px';
+    }
+
+    updateMinimap();
+  }, 250);
+}
+
+/* =====================================================
+   元に戻す・やり直し（Undo/Redo）
+   ===================================================== */
+function saveState() {
+  if (!iframeDoc || !iframeDoc.body) return;
+  const html = iframeDoc.body.innerHTML;
+  // 直前と同じなら保存しない
+  if (undoStack.length > 0 && undoStack[undoStack.length - 1] === html) return;
+  undoStack.push(html);
+  redoStack = [];
+  if (undoStack.length > MAX_UNDO) undoStack.shift();
+  updateUndoRedoBtns();
+}
+
+function undo() {
+  if (undoStack.length <= 1) return;
+  const current = undoStack.pop();
+  redoStack.push(current);
+  iframeDoc.body.innerHTML = undoStack[undoStack.length - 1];
+  afterStateRestore();
+}
+
+function redo() {
+  if (redoStack.length === 0) return;
+  const state = redoStack.pop();
+  undoStack.push(state);
+  iframeDoc.body.innerHTML = state;
+  afterStateRestore();
+}
+
+/* ===== 状態復元後の共通処理 ===== */
+function afterStateRestore() {
+  setupIframeEvents();
+  detectSections();
+  renderSidebar();
+  refreshAllTabs();
+  updateUndoRedoBtns();
+  adjustIframeHeight();
+}
+
+function updateUndoRedoBtns() {
+  document.getElementById('undo-btn').disabled = undoStack.length <= 1;
+  document.getElementById('redo-btn').disabled = redoStack.length === 0;
+}
+
+document.getElementById('undo-btn').addEventListener('click', undo);
+document.getElementById('redo-btn').addEventListener('click', redo);
+
+// キーボードショートカット（メイン画面とiframe両方）
+document.addEventListener('keydown', handleUndoRedoKey);
+function handleUndoRedoKey(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+    e.preventDefault();
+    undo();
+  }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+    e.preventDefault();
+    redo();
+  }
+}
+
+/* =====================================================
+   タブ切替
+   ===================================================== */
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    switchTab(btn.dataset.tab);
+  });
+});
+
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  const tabBtn = document.querySelector('.tab-btn[data-tab="' + tabId + '"]');
+  const tabContent = document.getElementById(tabId);
+  if (tabBtn) tabBtn.classList.add('active');
+  if (tabContent) tabContent.classList.add('active');
+}
+
+/* =====================================================
+   全タブのデータ更新
+   ===================================================== */
+function refreshAllTabs() {
+  refreshCTAs();
+  refreshLinks();
+  refreshOGP();
+  refreshColors();
+  refreshImageInfo();
+  updateMinimap();
+}
+
+/* =====================================================
+   CTA検出と編集（タブ: tab-cta）
+   ===================================================== */
+function detectCTAs() {
+  if (!iframeDoc) return [];
+  const ctas = [];
+  const candidates = iframeDoc.querySelectorAll('a, button, [role="button"], input[type="submit"]');
+
+  candidates.forEach(el => {
+    try {
+      const cs = iframeDoc.defaultView.getComputedStyle(el);
+      const cls = (el.className || '').toString().toLowerCase();
+      const hasButtonClass = /btn|button|cta/.test(cls);
+      const hasBgColor = cs.backgroundColor && cs.backgroundColor !== 'rgba(0, 0, 0, 0)' && cs.backgroundColor !== 'transparent';
+      const isButton = el.tagName === 'BUTTON' || (el.tagName === 'INPUT' && el.type === 'submit');
+
+      // ボタンらしい要素をフィルタリング
+      if (hasButtonClass || isButton || (el.tagName === 'A' && hasBgColor)) {
+        ctas.push({
+          el: el,
+          text: el.textContent.trim() || el.value || '',
+          href: el.getAttribute('href') || '',
+          bgColor: rgbToHex(cs.backgroundColor),
+          textColor: rgbToHex(cs.color),
+          fontSize: parseInt(cs.fontSize) || 16,
+          borderRadius: parseInt(cs.borderRadius) || 0
+        });
+      }
+    } catch(e) {}
+  });
+  return ctas;
+}
+
+function refreshCTAs() {
+  const ctaList = document.getElementById('cta-list');
+  const ctas = detectCTAs();
+
+  if (ctas.length === 0) {
+    ctaList.innerHTML = '<p class="empty-msg">CTAボタンが見つかりません</p>';
+    document.getElementById('cta-warning').classList.remove('show');
+    document.getElementById('cta-checker-stats').innerHTML = '<div class="checker-stat"><span class="dot dot-yellow"></span>CTAが検出されませんでした</div>';
+    return;
+  }
+
+  // ファーストビューチェック（上から700px以内にCTAがあるか）
+  let hasAboveFold = false;
+  ctas.forEach(c => {
+    try {
+      const rect = c.el.getBoundingClientRect();
+      // iframe内の座標系でのoffsetTopを使用
+      if (c.el.offsetTop < 700) hasAboveFold = true;
+    } catch(e) {}
+  });
+
+  const warningEl = document.getElementById('cta-warning');
+  warningEl.classList.toggle('show', !hasAboveFold);
+
+  // CTAチェッカー統計
+  document.getElementById('cta-checker-stats').innerHTML =
+    '<div class="checker-stat"><span class="dot ' + (hasAboveFold ? 'dot-green' : 'dot-red') + '"></span>ファーストビューCTA: ' + (hasAboveFold ? 'あり' : 'なし') + '</div>' +
+    '<div class="checker-stat"><span class="dot dot-green"></span>CTA総数: ' + ctas.length + '個</div>';
+
+  // CTAカードの描画
+  ctaList.innerHTML = '';
+  ctas.forEach((cta, i) => {
+    const card = document.createElement('div');
+    card.className = 'cta-card';
+
+    const previewBtnStyle = 'background:' + (cta.bgColor || '#2563eb') + ';color:' + (cta.textColor || '#fff') +
+      ';font-size:' + Math.min(cta.fontSize, 14) + 'px;border-radius:' + cta.borderRadius + 'px;';
+
+    card.innerHTML =
+      '<div class="cta-card-header">' +
+        '<span class="cta-preview-btn" style="' + previewBtnStyle + '">' + escapeHtml(cta.text.substring(0, 30) || '(テキストなし)') + '</span>' +
+        '<span style="font-size:10px;color:#888;">CTA #' + (i + 1) + '</span>' +
+      '</div>' +
+      '<div class="cta-card-fields">' +
+        '<div class="panel-label">ボタンテキスト</div>' +
+        '<input type="text" class="panel-input cta-field" data-cta="' + i + '" data-prop="text" value="' + escapeHtml(cta.text) + '">' +
+        '<div class="panel-label">リンクURL</div>' +
+        '<input type="text" class="panel-input cta-field" data-cta="' + i + '" data-prop="href" value="' + escapeHtml(cta.href) + '">' +
+        '<div class="panel-row">' +
+          '<label>背景色</label>' +
+          '<input type="color" class="cta-field" data-cta="' + i + '" data-prop="bgColor" value="' + (cta.bgColor || '#2563eb') + '">' +
+          '<label>文字色</label>' +
+          '<input type="color" class="cta-field" data-cta="' + i + '" data-prop="textColor" value="' + (cta.textColor || '#ffffff') + '">' +
+        '</div>' +
+        '<div class="panel-row">' +
+          '<label>文字サイズ</label>' +
+          '<input type="number" class="cta-field" data-cta="' + i + '" data-prop="fontSize" value="' + cta.fontSize + '" min="10" max="60">' +
+          '<label>角丸</label>' +
+          '<input type="number" class="cta-field" data-cta="' + i + '" data-prop="borderRadius" value="' + cta.borderRadius + '" min="0" max="100">' +
+        '</div>' +
+      '</div>';
+
+    // カードクリック → 展開/折りたたみ＋プレビュー内ハイライト
+    card.addEventListener('click', e => {
+      if (e.target.classList.contains('cta-field')) return; // 入力フィールドのクリックは無視
+      const wasEditing = card.classList.contains('editing');
+      ctaList.querySelectorAll('.cta-card.editing').forEach(c => c.classList.remove('editing'));
+      if (!wasEditing) card.classList.add('editing');
+
+      // プレビュー内の該当CTAにスクロール＋ハイライト
+      cta.el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      cta.el.style.outline = '3px solid #2563eb';
+      cta.el.style.outlineOffset = '3px';
+      setTimeout(() => {
+        cta.el.style.outline = '';
+        cta.el.style.outlineOffset = '';
+      }, 2000);
+    });
+
+    ctaList.appendChild(card);
+  });
+
+  // CTAフィールド変更のイベント委譲
+  ctaList.addEventListener('input', handleCTAFieldChange);
+  ctaList.addEventListener('change', handleCTAFieldChange);
+
+  function handleCTAFieldChange(e) {
+    const field = e.target;
+    if (!field.classList.contains('cta-field')) return;
+    const idx = parseInt(field.dataset.cta);
+    const prop = field.dataset.prop;
+    const c = ctas[idx];
+    if (!c) return;
+
+    switch (prop) {
+      case 'text':
+        c.el.textContent = field.value;
+        break;
+      case 'href':
+        c.el.setAttribute('href', field.value);
+        break;
+      case 'bgColor':
+        c.el.style.backgroundColor = field.value;
+        break;
+      case 'textColor':
+        c.el.style.color = field.value;
+        break;
+      case 'fontSize':
+        c.el.style.fontSize = field.value + 'px';
+        break;
+      case 'borderRadius':
+        c.el.style.borderRadius = field.value + 'px';
+        break;
+    }
+    saveState();
+  }
+}
+
+/* =====================================================
+   リンク管理（タブ: tab-link）
+   ===================================================== */
+function refreshLinks() {
+  if (!iframeDoc) return;
+  const linkList = document.getElementById('link-list');
+  const links = iframeDoc.querySelectorAll('a[href]');
+
+  if (links.length === 0) {
+    linkList.innerHTML = '<p class="empty-msg">リンクが見つかりません</p>';
+    return;
+  }
+
+  linkList.innerHTML = '';
+  links.forEach((link, i) => {
+    const href = link.getAttribute('href') || '';
+    const text = link.textContent.trim() || '(テキストなし)';
+    const isEmpty = !href || href === '#' || href === 'javascript:void(0)' || href === 'javascript:;';
+
+    const item = document.createElement('div');
+    item.className = 'link-item' + (isEmpty ? ' broken' : '');
+    item.innerHTML =
+      '<div class="link-text">' + escapeHtml(text.substring(0, 60)) + '</div>' +
+      '<div class="link-url ' + (isEmpty ? 'empty' : '') + '">' + (isEmpty ? '(空またはダミーリンク)' : escapeHtml(href)) + '</div>';
+
+    // クリックでプレビュー内のリンクにスクロール＋ハイライト
+    item.addEventListener('click', () => {
+      link.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      link.style.outline = '3px solid #ea580c';
+      link.style.outlineOffset = '3px';
+      setTimeout(() => {
+        link.style.outline = '';
+        link.style.outlineOffset = '';
+      }, 2000);
+    });
+
+    linkList.appendChild(item);
+  });
+}
+
+/* ===== URL一括置換 ===== */
+function bulkReplaceURLs() {
+  if (!iframeDoc) return;
+  const findVal = document.getElementById('link-find').value;
+  const replaceVal = document.getElementById('link-replace').value;
+  if (!findVal) { showToast('検索URLを入力してください'); return; }
+
+  let count = 0;
+  iframeDoc.querySelectorAll('a[href]').forEach(link => {
+    const href = link.getAttribute('href') || '';
+    if (href.includes(findVal)) {
+      const newHref = href.split(findVal).join(replaceVal);
+      link.setAttribute('href', newHref);
+      count++;
+    }
+  });
+
+  if (count > 0) {
+    saveState();
+    refreshLinks();
+    showToast(count + '件のURLを置換しました');
+  } else {
+    showToast('一致するURLが見つかりません');
+  }
+}
+
+/* =====================================================
+   OGP/SEO編集（タブ: tab-ogp）
+   ===================================================== */
+function refreshOGP() {
+  if (!iframeDoc || !iframeDoc.head) return;
+  const head = iframeDoc.head;
+
+  // 各メタ情報を読み取ってフォームに反映
+  document.getElementById('ogp-title').value = iframeDoc.title || '';
+  document.getElementById('ogp-desc').value = getMetaContent(head, 'name', 'description');
+  document.getElementById('ogp-og-title').value = getMetaContent(head, 'property', 'og:title');
+  document.getElementById('ogp-og-desc').value = getMetaContent(head, 'property', 'og:description');
+  document.getElementById('ogp-og-image').value = getMetaContent(head, 'property', 'og:image');
+  document.getElementById('ogp-og-type').value = getMetaContent(head, 'property', 'og:type') || 'website';
+  document.getElementById('ogp-twitter-card').value = getMetaContent(head, 'name', 'twitter:card') || 'summary_large_image';
+
+  // プレビュー更新
+  updateOGPPreview();
+}
+
+function getMetaContent(head, attr, value) {
+  const el = head.querySelector('meta[' + attr + '="' + value + '"]');
+  return el ? (el.getAttribute('content') || '') : '';
+}
+
+function setMetaContent(attr, value, content) {
+  if (!iframeDoc || !iframeDoc.head) return;
+  let el = iframeDoc.head.querySelector('meta[' + attr + '="' + value + '"]');
+  if (!el) {
+    el = iframeDoc.createElement('meta');
+    el.setAttribute(attr, value);
+    iframeDoc.head.appendChild(el);
+  }
+  el.setAttribute('content', content);
+}
+
+function updateOGP() {
+  if (!iframeDoc) return;
+
+  // タイトル
+  iframeDoc.title = document.getElementById('ogp-title').value;
+
+  // メタ情報の更新
+  setMetaContent('name', 'description', document.getElementById('ogp-desc').value);
+  setMetaContent('property', 'og:title', document.getElementById('ogp-og-title').value);
+  setMetaContent('property', 'og:description', document.getElementById('ogp-og-desc').value);
+  setMetaContent('property', 'og:image', document.getElementById('ogp-og-image').value);
+  setMetaContent('property', 'og:type', document.getElementById('ogp-og-type').value);
+  setMetaContent('name', 'twitter:card', document.getElementById('ogp-twitter-card').value);
+
+  // プレビュー更新
+  updateOGPPreview();
+  saveState();
+}
+
+function updateOGPPreview() {
+  const t = document.getElementById('ogp-og-title').value || document.getElementById('ogp-title').value || 'ページタイトル';
+  const d = document.getElementById('ogp-og-desc').value || document.getElementById('ogp-desc').value || 'ページの説明文';
+  const imgUrl = document.getElementById('ogp-og-image').value;
+
+  document.getElementById('ogp-preview-title').textContent = t;
+  document.getElementById('ogp-preview-desc').textContent = d;
+
+  const imgArea = document.getElementById('ogp-image-area');
+  if (imgUrl) {
+    imgArea.style.backgroundImage = 'url(' + imgUrl + ')';
+    imgArea.textContent = '';
+  } else {
+    imgArea.style.backgroundImage = '';
+    imgArea.textContent = '画像未設定';
+  }
+}
+
+/* =====================================================
+   カラーテーマ管理（タブ: tab-color）
+   ===================================================== */
+function extractColors() {
+  if (!iframeDoc) return {};
+  const colorMap = {};
+  const allElements = iframeDoc.body.querySelectorAll('*');
+
+  allElements.forEach(el => {
+    try {
+      const cs = iframeDoc.defaultView.getComputedStyle(el);
+      const props = ['backgroundColor', 'color', 'borderTopColor'];
+      props.forEach(prop => {
+        const val = cs[prop];
+        if (!val) return;
+        const hex = rgbToHex(val);
+        // 白、黒、透明は除外
+        if (!hex || hex === '#000000' || hex === '#ffffff' || hex === 'transparent') return;
+        if (!colorMap[hex]) colorMap[hex] = 0;
+        colorMap[hex]++;
+      });
+    } catch(e) {}
+  });
+
+  return colorMap;
+}
+
+function refreshColors() {
+  const area = document.getElementById('color-swatch-area');
+  const colorMap = extractColors();
+  const sorted = Object.entries(colorMap).sort((a, b) => b[1] - a[1]);
+
+  if (sorted.length === 0) {
+    area.innerHTML = '<p class="empty-msg">カラーが検出されませんでした</p>';
+    return;
+  }
+
+  area.innerHTML = '';
+  const container = document.createElement('div');
+  container.className = 'color-swatches';
+
+  sorted.slice(0, 40).forEach(([hex, count]) => {
+    const swatch = document.createElement('div');
+    swatch.className = 'color-swatch';
+    swatch.style.backgroundColor = hex;
+    swatch.title = hex + ' (' + count + '箇所)';
+    swatch.innerHTML = '<span class="count-badge">' + count + '</span>';
+
+    // クリック → カラーピッカーで一括変更
+    swatch.addEventListener('click', () => {
+      const picker = document.createElement('input');
+      picker.type = 'color';
+      picker.value = hex;
+      picker.style.position = 'fixed';
+      picker.style.opacity = '0';
+      document.body.appendChild(picker);
+      picker.addEventListener('change', e => {
+        globalReplaceColor(hex, e.target.value);
+        document.body.removeChild(picker);
+      });
+      picker.addEventListener('blur', () => {
+        setTimeout(() => {
+          if (document.body.contains(picker)) document.body.removeChild(picker);
+        }, 200);
+      });
+      picker.click();
+    });
+
+    container.appendChild(swatch);
+  });
+
+  area.appendChild(container);
+}
+
+/* ===== 色の一括置換 ===== */
+function globalReplaceColor(oldHex, newHex) {
+  if (!iframeDoc) return;
+  const allElements = iframeDoc.body.querySelectorAll('*');
+  let count = 0;
+
+  allElements.forEach(el => {
+    try {
+      const cs = iframeDoc.defaultView.getComputedStyle(el);
+      // 背景色の置換
+      if (rgbToHex(cs.backgroundColor) === oldHex) {
+        el.style.backgroundColor = newHex;
+        count++;
+      }
+      // テキスト色の置換
+      if (rgbToHex(cs.color) === oldHex) {
+        el.style.color = newHex;
+        count++;
+      }
+      // ボーダー色の置換
+      if (rgbToHex(cs.borderTopColor) === oldHex) {
+        el.style.borderColor = newHex;
+        count++;
+      }
+    } catch(e) {}
+  });
+
+  if (count > 0) {
+    saveState();
+    refreshColors();
+    showToast(count + '箇所の色を ' + oldHex + ' → ' + newHex + ' に変更');
+  }
+}
+
+/* =====================================================
+   余白調整（タブ: tab-spacing）
+   ===================================================== */
+function updateSpacingControls(idx) {
+  const container = document.getElementById('spacing-controls');
+  if (idx < 0 || idx >= sections.length) {
+    container.innerHTML = '<p class="empty-msg">左サイドバーでセクションを選択してください</p>';
+    return;
+  }
+
+  const sec = sections[idx];
+  let cs;
+  try { cs = iframeDoc.defaultView.getComputedStyle(sec); } catch(e) { return; }
+
+  const pt = parseInt(cs.paddingTop) || 0;
+  const pb = parseInt(cs.paddingBottom) || 0;
+  const mt = parseInt(cs.marginTop) || 0;
+  const mb = parseInt(cs.marginBottom) || 0;
+
+  container.innerHTML =
+    '<div class="panel-section">' +
+      '<div class="panel-section-title">' + escapeHtml(getSectionLabel(sec, idx)) + '</div>' +
+      '<div class="spacing-visual">' +
+        '<div class="spacing-label-top">margin-top: ' + mt + 'px</div>' +
+        '<div class="spacing-box">' +
+          '<div style="font-size:9px;position:absolute;top:4px;left:50%;transform:translateX(-50%);color:#2563eb;">padding-top: ' + pt + 'px</div>' +
+          '<span>コンテンツ</span>' +
+          '<div style="font-size:9px;position:absolute;bottom:4px;left:50%;transform:translateX(-50%);color:#2563eb;">padding-bottom: ' + pb + 'px</div>' +
+        '</div>' +
+        '<div class="spacing-label-bottom">margin-bottom: ' + mb + 'px</div>' +
+      '</div>' +
+      '<div class="panel-row"><label>上パディング</label><input type="number" id="sp-pt" value="' + pt + '" min="0" max="500" step="5"><span style="font-size:11px;color:#888;">px</span></div>' +
+      '<div class="panel-row"><label>下パディング</label><input type="number" id="sp-pb" value="' + pb + '" min="0" max="500" step="5"><span style="font-size:11px;color:#888;">px</span></div>' +
+      '<div class="panel-row"><label>上マージン</label><input type="number" id="sp-mt" value="' + mt + '" min="0" max="500" step="5"><span style="font-size:11px;color:#888;">px</span></div>' +
+      '<div class="panel-row"><label>下マージン</label><input type="number" id="sp-mb" value="' + mb + '" min="0" max="500" step="5"><span style="font-size:11px;color:#888;">px</span></div>' +
+    '</div>';
+
+  // 余白変更イベントの設定
+  ['sp-pt', 'sp-pb', 'sp-mt', 'sp-mb'].forEach(id => {
+    const input = document.getElementById(id);
+    if (!input) return;
+    input.addEventListener('change', () => {
+      sec.style.paddingTop = document.getElementById('sp-pt').value + 'px';
+      sec.style.paddingBottom = document.getElementById('sp-pb').value + 'px';
+      sec.style.marginTop = document.getElementById('sp-mt').value + 'px';
+      sec.style.marginBottom = document.getElementById('sp-mb').value + 'px';
+      saveState();
+      adjustIframeHeight();
+      updateSpacingControls(idx);
+    });
+  });
+}
+
+/* =====================================================
+   画像情報（タブ: tab-images）
+   ===================================================== */
+function refreshImageInfo() {
+  if (!iframeDoc) return;
+  const imgList = document.getElementById('img-info-list');
+  const totalEl = document.getElementById('img-total-weight');
+  const images = iframeDoc.querySelectorAll('img');
+
+  if (images.length === 0) {
+    imgList.innerHTML = '<p class="empty-msg">画像が見つかりません</p>';
+    totalEl.textContent = '画像なし';
+    return;
+  }
+
+  let totalSize = 0;
+  imgList.innerHTML = '';
+
+  images.forEach((img, i) => {
+    // 画像サイズの推定
+    let estimatedSize = 0;
+    const src = img.src || '';
+    if (src.startsWith('data:')) {
+      // base64データからサイズを推定
+      const base64Part = src.split(',')[1] || '';
+      estimatedSize = Math.round(base64Part.length * 0.75);
+    } else if (src) {
+      estimatedSize = -1; // 外部URLはサイズ不明
+    }
+
+    totalSize += Math.max(estimatedSize, 0);
+    const isLarge = estimatedSize > 500 * 1024;
+
+    const sizeText = estimatedSize >= 0 ? formatBytes(estimatedSize) : '(外部URL)';
+    const altText = img.alt || '';
+    const nameText = altText || (src.split('/').pop() || '').substring(0, 30) || '画像 ' + (i + 1);
+
+    const item = document.createElement('div');
+    item.className = 'img-info-item';
+    item.innerHTML =
+      '<img class="img-info-thumb" src="' + escapeHtml(src) + '" alt="" onerror="this.style.background=\'#e5e7eb\';this.alt=\'読込失敗\';">' +
+      '<div class="img-info-details">' +
+        '<div class="img-info-name">' + escapeHtml(nameText) + '</div>' +
+        '<div class="img-info-size">' + (img.naturalWidth || '?') + 'x' + (img.naturalHeight || '?') + ' | ' + sizeText + '</div>' +
+        (isLarge ? '<div class="img-info-warn">&#9888; 500KB超 - 最適化を推奨</div>' : '') +
+      '</div>';
+
+    // クリックでプレビュー内の画像にスクロール＋ハイライト
+    item.addEventListener('click', () => {
+      img.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      img.style.outline = '3px solid #ea580c';
+      img.style.outlineOffset = '3px';
+      setTimeout(() => {
+        img.style.outline = '';
+        img.style.outlineOffset = '';
+      }, 2000);
+    });
+
+    imgList.appendChild(item);
+  });
+
+  totalEl.textContent = '総画像サイズ: ' + formatBytes(totalSize) + ' (' + images.length + '枚)';
+}
+
+/* =====================================================
+   CTAミニマップ
+   ===================================================== */
+function updateMinimap() {
+  if (!iframeDoc) return;
+  const minimap = document.getElementById('minimap');
+  const ctas = detectCTAs();
+  const totalHeight = Math.max(
+    iframeDoc.documentElement ? iframeDoc.documentElement.scrollHeight : 1,
+    iframeDoc.body ? iframeDoc.body.scrollHeight : 1,
+    1
+  );
+  const minimapHeight = Math.min(300, Math.max(100, totalHeight / 10));
+
+  if (ctas.length === 0) {
+    minimap.style.display = 'none';
+    return;
+  }
+
+  minimap.style.display = 'block';
+  minimap.style.height = minimapHeight + 'px';
+  minimap.innerHTML = '';
+
+  // CTA位置マーカーの描画
+  ctas.forEach(cta => {
+    try {
+      const top = cta.el.offsetTop || 0;
+      const ratio = top / totalHeight;
+      const marker = document.createElement('div');
+      marker.className = 'minimap-cta';
+      marker.style.top = Math.round(ratio * minimapHeight) + 'px';
+      marker.title = cta.text.substring(0, 30);
+      minimap.appendChild(marker);
+    } catch(e) {}
+  });
+
+  updateMinimapViewport();
+}
+
+function updateMinimapViewport() {
+  const minimap = document.getElementById('minimap');
+  if (!minimap || minimap.style.display === 'none' || !iframeDoc) return;
+
+  const totalHeight = Math.max(
+    iframeDoc.documentElement ? iframeDoc.documentElement.scrollHeight : 1,
+    iframeDoc.body ? iframeDoc.body.scrollHeight : 1,
+    1
+  );
+  const minimapHeight = minimap.offsetHeight;
+  const scrollTop = iframeDoc.documentElement ? iframeDoc.documentElement.scrollTop : 0;
+  const viewportHeight = previewArea.offsetHeight;
+
+  // 既存のビューポート要素を削除して再作成
+  const existing = minimap.querySelector('.minimap-viewport');
+  if (existing) existing.remove();
+
+  const vp = document.createElement('div');
+  vp.className = 'minimap-viewport';
+  vp.style.top = Math.round(scrollTop / totalHeight * minimapHeight) + 'px';
+  vp.style.height = Math.max(10, Math.round(viewportHeight / totalHeight * minimapHeight)) + 'px';
+  minimap.appendChild(vp);
+}
+
+/* =====================================================
+   ダウンロード
+   ===================================================== */
+document.getElementById('download-btn').addEventListener('click', () => {
+  if (!iframeDoc) return;
+
+  // iframe内のcontentEditableを解除
+  iframeDoc.querySelectorAll('[contenteditable]').forEach(el => {
+    el.removeAttribute('contenteditable');
+  });
+  // 一時的なoutlineスタイルを除去
+  iframeDoc.querySelectorAll('[style*="outline"]').forEach(el => {
+    el.style.outline = '';
+    el.style.outlineOffset = '';
+  });
+
+  // 完全なHTMLを取得してダウンロード
+  const serializer = new XMLSerializer();
+  let html = '<!DOCTYPE html>\n' + serializer.serializeToString(iframeDoc.documentElement);
+
+  const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  // ファイル名に_editedを付与
+  const dotIdx = fileName.lastIndexOf('.');
+  const base = dotIdx >= 0 ? fileName.substring(0, dotIdx) : fileName;
+  const ext = dotIdx >= 0 ? fileName.substring(dotIdx) : '.html';
+  a.download = base + '_edited' + ext;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('HTMLファイルをダウンロードしました');
+});
+
+/* ===== 別のファイルを読み込み ===== */
+document.getElementById('reload-btn').addEventListener('click', () => {
+  if (!confirm('現在の編集内容は失われます。続けますか？')) return;
+  editorScreen.style.display = 'none';
+  uploadScreen.style.display = '';
+  iframeDoc = null;
+  sections = [];
+  selectedSectionIdx = -1;
+  selectedTextEl = null;
+  undoStack = [];
+  redoStack = [];
+  fileInput.value = '';
+});
+
+/* =====================================================
+   ユーティリティ関数
+   ===================================================== */
+
+/* ===== RGB文字列を16進カラーコードに変換 ===== */
+function rgbToHex(rgb) {
+  if (!rgb || rgb === 'transparent' || rgb === 'rgba(0, 0, 0, 0)') return '';
+  // すでにHEXの場合はそのまま返す
+  if (rgb.startsWith('#')) {
+    if (rgb.length === 4) return '#' + rgb[1]+rgb[1]+rgb[2]+rgb[2]+rgb[3]+rgb[3];
+    return rgb;
+  }
+  const match = rgb.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+  if (!match) return '';
+  const r = parseInt(match[1]);
+  const g = parseInt(match[2]);
+  const b = parseInt(match[3]);
+  return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+/* ===== HTMLエスケープ ===== */
+function escapeHtml(str) {
+  if (!str) return '';
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+/* ===== バイト数のフォーマット ===== */
+function formatBytes(bytes) {
+  if (bytes === 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+/* ===== トースト通知 ===== */
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+</script>
+</body>
+</html>
