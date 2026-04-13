@@ -921,6 +921,145 @@ body {
 .dot-green { background: #16a34a; }
 .dot-red { background: #dc2626; }
 .dot-yellow { background: #eab308; }
+
+/* ===== 機能6-7: フォーマットツールバー ===== */
+.format-toolbar {
+  position: fixed;
+  display: none;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 4px;
+  z-index: 50000;
+  gap: 2px;
+  align-items: center;
+}
+.format-toolbar.show { display: flex; }
+.format-toolbar button {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+.format-toolbar button:hover { background: #f0f4ff; }
+.format-toolbar button.active { background: #dbeafe; color: #2563eb; }
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #ddd;
+  margin: 0 4px;
+}
+
+/* ===== 機能14: 右クリックコンテキストメニュー ===== */
+.context-menu {
+  position: fixed;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  z-index: 99999;
+  min-width: 180px;
+  display: none;
+}
+.context-menu.show { display: block; }
+.context-menu-item {
+  padding: 8px 16px;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #333;
+  transition: background 0.1s;
+}
+.context-menu-item:hover { background: #f0f4ff; }
+.context-menu-divider {
+  height: 1px;
+  background: #eee;
+  margin: 4px 0;
+}
+
+/* ===== 機能10-13: 挿入メニュー ===== */
+.insert-menu-wrapper {
+  position: relative;
+  display: inline-block;
+}
+.insert-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  padding: 4px 0;
+  z-index: 50000;
+  min-width: 180px;
+  display: none;
+}
+.insert-menu.show { display: block; }
+.insert-menu button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  font-weight: 500;
+  color: #333;
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.1s;
+}
+.insert-menu button:hover { background: #f0f4ff; }
+
+/* ===== 機能16: ズームコントロール ===== */
+.zoom-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.zoom-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(255,255,255,0.6);
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.zoom-btn:hover {
+  border-color: rgba(255,255,255,0.4);
+  color: #fff;
+}
+.zoom-level {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  min-width: 40px;
+  text-align: center;
+}
 </style>
 </head>
 <body>
@@ -959,6 +1098,24 @@ body {
       <button class="ur-btn" id="undo-btn" disabled title="元に戻す (Ctrl+Z)">&#8617;</button>
       <button class="ur-btn" id="redo-btn" disabled title="やり直す (Ctrl+Y)">&#8618;</button>
     </div>
+    <div class="header-sep"></div>
+    <!-- 機能16: ズームコントロール -->
+    <div class="zoom-controls">
+      <button class="zoom-btn" id="zoom-out-btn" title="縮小">&#8722;</button>
+      <span class="zoom-level" id="zoom-level">100%</span>
+      <button class="zoom-btn" id="zoom-in-btn" title="拡大">&#43;</button>
+    </div>
+    <div class="header-sep"></div>
+    <!-- 機能10-13: 挿入メニュー -->
+    <div class="insert-menu-wrapper">
+      <button class="btn btn-ghost" id="insert-menu-btn">&#43; 挿入</button>
+      <div class="insert-menu" id="insert-menu">
+        <button onclick="insertTextBlock()">&#128221; テキスト</button>
+        <button onclick="insertImage()">&#128444; 画像</button>
+        <button onclick="insertButton()">&#128280; ボタン</button>
+        <button onclick="insertDivider()">&#10134; 区切り線</button>
+      </div>
+    </div>
     <div class="header-spacer"></div>
     <div class="header-actions">
       <button class="btn btn-ghost" id="reload-btn">別のファイル</button>
@@ -973,7 +1130,7 @@ body {
       <div class="sidebar-header">セクション一覧</div>
       <div class="sidebar-list" id="sidebar-list"></div>
       <div class="sidebar-footer">
-        <button class="add-section-btn" id="add-section-btn">＋ セクションを追加</button>
+        <button class="add-section-btn" id="add-section-btn">&#65291; セクションを追加</button>
       </div>
     </div>
 
@@ -1004,7 +1161,7 @@ body {
         <div class="panel-section">
           <div class="panel-section-title">&#128221; インラインテキスト編集</div>
           <p style="font-size:11px;color:#888;line-height:1.6;margin-bottom:10px;">
-            プレビュー内のテキストをクリックして直接編集できます。<br>
+            プレビュー内の要素をクリックで選択、ダブルクリックでテキスト編集。<br>
             画像をクリックすると画像の差し替えができます。<br>
             選択するとここに詳細が表示されます。
           </p>
@@ -1025,6 +1182,27 @@ body {
               <button class="color-btn color-btn-red" onclick="applyTextColor('#dc2626')">赤色</button>
               <input type="color" id="text-custom-color" value="#000000" style="width:28px;height:24px;border:1px solid #ddd;border-radius:3px;cursor:pointer;vertical-align:middle;">
               <button class="color-btn color-btn-reset" onclick="applyTextColor('')">リセット</button>
+            </div>
+            <!-- 機能8: 背景色 -->
+            <div style="margin-top:10px;">
+              <div class="panel-label">背景色</div>
+              <div class="color-btns">
+                <input type="color" id="bg-color-picker" value="#ffffff" style="width:28px;height:24px;border:1px solid #ddd;border-radius:3px;cursor:pointer;vertical-align:middle;">
+                <button class="color-btn color-btn-reset" onclick="applyBgColor('transparent')">透明</button>
+              </div>
+            </div>
+            <!-- 機能9: 角丸 -->
+            <div style="margin-top:10px;">
+              <div class="panel-label">角丸 (border-radius)</div>
+              <div class="panel-row">
+                <input type="range" id="border-radius-slider" min="0" max="50" value="0" style="flex:1;">
+                <span id="border-radius-value" style="font-size:11px;color:#888;min-width:35px;">0px</span>
+              </div>
+            </div>
+            <!-- 機能17: ロック切替 -->
+            <div style="margin-top:10px;">
+              <div class="panel-label">要素ロック</div>
+              <button id="lock-toggle-btn" onclick="toggleLockSelected()" style="padding:6px 14px;border:1px solid #ddd;background:#fff;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">&#128275; ロック解除</button>
             </div>
             <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
               <div class="panel-label">ブロック操作</div>
@@ -1165,8 +1343,37 @@ body {
 <!-- ===== 通知トースト ===== -->
 <div class="toast" id="toast"></div>
 
+<!-- ===== フォーマットツールバー（機能6-7） ===== -->
+<div class="format-toolbar" id="format-toolbar">
+  <button onclick="execFormat('bold')" title="太字"><b>B</b></button>
+  <button onclick="execFormat('italic')" title="斜体"><i>I</i></button>
+  <button onclick="execFormat('underline')" title="下線"><u>U</u></button>
+  <span class="toolbar-divider"></span>
+  <button onclick="execAlign('left')" title="左揃え" style="font-size:12px;">&#9776;</button>
+  <button onclick="execAlign('center')" title="中央揃え" style="font-size:12px;">&#9868;</button>
+  <button onclick="execAlign('right')" title="右揃え" style="font-size:12px;">&#9783;</button>
+</div>
+
+<!-- ===== 右クリックコンテキストメニュー（機能14） ===== -->
+<div class="context-menu" id="context-menu">
+  <div class="context-menu-item" onclick="ctxCopy()">&#128203; コピー</div>
+  <div class="context-menu-item" onclick="ctxPaste()">&#128203; 貼り付け</div>
+  <div class="context-menu-item" onclick="ctxDuplicate()">&#128260; 複製</div>
+  <div class="context-menu-item" onclick="ctxDelete()">&#128465; 削除</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item" onclick="ctxBringForward()">&#11014; 前面へ</div>
+  <div class="context-menu-item" onclick="ctxSendBackward()">&#11015; 背面へ</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item" onclick="ctxCopyStyle()">&#127912; スタイルをコピー</div>
+  <div class="context-menu-item" onclick="ctxPasteStyle()">&#127912; スタイルを貼り付け</div>
+  <div class="context-menu-divider"></div>
+  <div class="context-menu-item" onclick="ctxToggleLock()">&#128274; ロック切替</div>
+</div>
+
 <!-- ===== 画像置換用の非表示input ===== -->
 <input type="file" id="img-replace-input" accept="image/*" style="display:none;">
+<!-- ===== 挿入画像用の非表示input（機能11） ===== -->
+<input type="file" id="insert-img-input" accept="image/*" style="display:none;">
 
 <script>
 /* =====================================================
@@ -1187,6 +1394,31 @@ const MAX_UNDO = 30;
 
 /* ===== 画像置換対象 ===== */
 let imageReplaceTarget = null;
+
+/* ===== 機能1: 選択管理 ===== */
+let selectedElement = null;    // 選択中の要素（iframe内）
+let isTextEditing = false;     // テキスト編集モード中かどうか
+
+/* ===== 機能3: ドラッグ移動管理 ===== */
+let isDragging = false;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragElOrigTransform = '';
+let dragElStartX = 0;
+let dragElStartY = 0;
+let dragThreshold = 5; // ドラッグ判定の閾値（px）
+let dragStarted = false;
+
+/* ===== 機能14: コンテキストメニュー管理 ===== */
+let contextTarget = null;      // 右クリック対象要素
+let copiedStyleData = null;    // スタイルコピー用
+let copiedHTML = '';            // HTMLコピー用
+
+/* ===== 機能15: ガイドライン管理 ===== */
+let guideLines = [];           // ガイドラインDOM要素
+
+/* ===== 機能16: ズーム管理 ===== */
+let zoomLevel = 100;           // 現在のズーム倍率（%）
 
 /* =====================================================
    DOM参照の取得
@@ -1232,6 +1464,78 @@ function loadFile(file) {
   reader.readAsText(file);
 }
 
+/* ===== iframe内に注入するCSS（選択オーバーレイ・ガイドライン等） ===== */
+function getIframeInjectedCSS() {
+  return `
+    /* 機能2: 選択オーバーレイ */
+    #__selection-overlay__ {
+      position: absolute;
+      pointer-events: none;
+      border: 2px solid #2563eb;
+      z-index: 999998;
+      display: none;
+    }
+    #__selection-overlay__.show { display: block; }
+    #__selection-overlay__ .sel-handle {
+      position: absolute;
+      width: 8px;
+      height: 8px;
+      background: #2563eb;
+      border: 1px solid #fff;
+      pointer-events: auto;
+      cursor: pointer;
+      z-index: 999999;
+    }
+    /* 8つのハンドル位置 */
+    #__selection-overlay__ .sel-handle.nw { top: -4px; left: -4px; cursor: nw-resize; }
+    #__selection-overlay__ .sel-handle.n  { top: -4px; left: 50%; margin-left: -4px; cursor: n-resize; }
+    #__selection-overlay__ .sel-handle.ne { top: -4px; right: -4px; cursor: ne-resize; }
+    #__selection-overlay__ .sel-handle.e  { top: 50%; margin-top: -4px; right: -4px; cursor: e-resize; }
+    #__selection-overlay__ .sel-handle.se { bottom: -4px; right: -4px; cursor: se-resize; }
+    #__selection-overlay__ .sel-handle.s  { bottom: -4px; left: 50%; margin-left: -4px; cursor: s-resize; }
+    #__selection-overlay__ .sel-handle.sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+    #__selection-overlay__ .sel-handle.w  { top: 50%; margin-top: -4px; left: -4px; cursor: w-resize; }
+
+    /* 機能3: ドラッグ中の影 */
+    .__dragging-shadow__ {
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2) !important;
+      opacity: 0.85 !important;
+    }
+
+    /* 機能15: ガイドライン */
+    .__guide-line__ {
+      position: absolute;
+      background: #dc2626;
+      z-index: 999997;
+      pointer-events: none;
+    }
+    .__guide-line-h__ {
+      height: 1px;
+      left: 0;
+      right: 0;
+    }
+    .__guide-line-v__ {
+      width: 1px;
+      top: 0;
+      bottom: 0;
+    }
+
+    /* 機能17: ロックアイコン */
+    [data-locked="true"]::after {
+      content: '\\1F512';
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      font-size: 14px;
+      z-index: 999996;
+      pointer-events: none;
+    }
+    [data-locked="true"] {
+      position: relative;
+    }
+  `;
+}
+
 /* ===== エディター初期化 ===== */
 function initEditor(html) {
   uploadScreen.style.display = 'none';
@@ -1243,7 +1547,16 @@ function initEditor(html) {
   iframe.onload = () => {
     iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
 
-    // iframe内のクリックイベントを監視
+    // iframe内にCSSを注入
+    const style = iframeDoc.createElement('style');
+    style.id = '__editor-injected-css__';
+    style.textContent = getIframeInjectedCSS();
+    iframeDoc.head.appendChild(style);
+
+    // iframe内に選択オーバーレイを作成（機能2）
+    createSelectionOverlay();
+
+    // iframe内のイベントを監視
     setupIframeEvents();
 
     // セクション検出
@@ -1267,14 +1580,144 @@ function initEditor(html) {
 }
 
 /* =====================================================
-   iframe内イベントの設定
+   機能2: 選択オーバーレイの作成
+   ===================================================== */
+function createSelectionOverlay() {
+  if (!iframeDoc) return;
+  // 既存のオーバーレイがあれば削除
+  const existing = iframeDoc.getElementById('__selection-overlay__');
+  if (existing) existing.remove();
+
+  const overlay = iframeDoc.createElement('div');
+  overlay.id = '__selection-overlay__';
+
+  // 8方向のハンドルを作成
+  const handles = ['nw','n','ne','e','se','s','sw','w'];
+  handles.forEach(dir => {
+    const handle = iframeDoc.createElement('div');
+    handle.className = 'sel-handle ' + dir;
+    handle.dataset.dir = dir;
+    overlay.appendChild(handle);
+  });
+
+  iframeDoc.body.appendChild(overlay);
+
+  // ハンドルのリサイズイベント
+  setupResizeHandles(overlay);
+}
+
+/* ===== 選択オーバーレイの位置更新 ===== */
+function updateSelectionOverlay() {
+  if (!iframeDoc || !selectedElement) return;
+  const overlay = iframeDoc.getElementById('__selection-overlay__');
+  if (!overlay) return;
+
+  const rect = selectedElement.getBoundingClientRect();
+  const scrollX = iframeDoc.defaultView.pageXOffset || iframeDoc.documentElement.scrollLeft;
+  const scrollY = iframeDoc.defaultView.pageYOffset || iframeDoc.documentElement.scrollTop;
+
+  overlay.style.left = (rect.left + scrollX) + 'px';
+  overlay.style.top = (rect.top + scrollY) + 'px';
+  overlay.style.width = rect.width + 'px';
+  overlay.style.height = rect.height + 'px';
+  overlay.classList.add('show');
+}
+
+/* ===== 選択オーバーレイを非表示にする ===== */
+function hideSelectionOverlay() {
+  if (!iframeDoc) return;
+  const overlay = iframeDoc.getElementById('__selection-overlay__');
+  if (overlay) overlay.classList.remove('show');
+}
+
+/* ===== リサイズハンドルのイベント設定 ===== */
+function setupResizeHandles(overlay) {
+  if (!iframeDoc) return;
+
+  overlay.querySelectorAll('.sel-handle').forEach(handle => {
+    handle.addEventListener('mousedown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!selectedElement) return;
+      // ロック済みはリサイズ不可
+      if (selectedElement.dataset.locked === 'true') {
+        showToast('ロック中の要素はリサイズできません');
+        return;
+      }
+
+      const dir = handle.dataset.dir;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const origRect = selectedElement.getBoundingClientRect();
+      const origWidth = origRect.width;
+      const origHeight = origRect.height;
+
+      // computedStyleからの元のサイズ取得
+      const cs = iframeDoc.defaultView.getComputedStyle(selectedElement);
+      const origCSSWidth = parseInt(cs.width) || origWidth;
+      const origCSSHeight = parseInt(cs.height) || origHeight;
+
+      function onMouseMove(ev) {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+
+        let newW = origCSSWidth;
+        let newH = origCSSHeight;
+
+        // 方向に応じてサイズを変更
+        if (dir.includes('e')) newW = origCSSWidth + dx;
+        if (dir.includes('w')) newW = origCSSWidth - dx;
+        if (dir.includes('s')) newH = origCSSHeight + dy;
+        if (dir.includes('n')) newH = origCSSHeight - dy;
+
+        newW = Math.max(20, newW);
+        newH = Math.max(20, newH);
+
+        selectedElement.style.width = newW + 'px';
+        selectedElement.style.height = newH + 'px';
+        updateSelectionOverlay();
+      }
+
+      function onMouseUp() {
+        iframeDoc.removeEventListener('mousemove', onMouseMove);
+        iframeDoc.removeEventListener('mouseup', onMouseUp);
+        saveState();
+        adjustIframeHeight();
+      }
+
+      iframeDoc.addEventListener('mousemove', onMouseMove);
+      iframeDoc.addEventListener('mouseup', onMouseUp);
+    });
+  });
+}
+
+/* =====================================================
+   iframe内イベントの設定（機能1: クリック＝選択、ダブルクリック＝テキスト編集）
    ===================================================== */
 function setupIframeEvents() {
   if (!iframeDoc) return;
 
-  // テキスト要素のクリック → インライン編集 / 画像クリック → 画像置換
-  iframeDoc.addEventListener('click', e => {
+  // テキスト編集中のblurで編集モード終了
+  function exitTextEditMode() {
+    if (isTextEditing && selectedElement) {
+      selectedElement.contentEditable = 'false';
+      isTextEditing = false;
+      hideFormatToolbar();
+      saveState();
+      refreshAllTabs();
+    }
+  }
+
+  /* ===== シングルクリック → 選択 ===== */
+  iframeDoc.addEventListener('mousedown', e => {
     const el = e.target;
+
+    // 選択オーバーレイのハンドルクリックは無視
+    if (el.classList && el.classList.contains('sel-handle')) return;
+    // ガイドラインは無視
+    if (el.classList && (el.classList.contains('__guide-line__') || el.classList.contains('__guide-line-h__') || el.classList.contains('__guide-line-v__'))) return;
+    // オーバーレイ自体は無視
+    if (el.id === '__selection-overlay__') return;
 
     // 画像クリック → 画像置換
     if (el.tagName === 'IMG') {
@@ -1285,22 +1728,101 @@ function setupIframeEvents() {
       return;
     }
 
-    // テキスト要素のクリック → 編集モード
-    if (isTextElement(el)) {
-      e.preventDefault();
-      selectTextElement(el);
+    // テキスト編集中に他の場所をクリック → 編集モード終了
+    if (isTextEditing && el !== selectedElement && !selectedElement.contains(el)) {
+      exitTextEditMode();
+    }
+
+    // テキスト編集中の場合はclickイベントをそのまま通す（カーソル位置変更のため）
+    if (isTextEditing && (el === selectedElement || selectedElement.contains(el))) {
       return;
     }
 
-    // テキスト以外のブロック要素もクリックで選択可能にする（削除用）
-    const blockEl = findSelectableBlock(el);
-    if (blockEl) {
+    // 選択対象を見つける
+    const selectableEl = findSelectableElement(el);
+
+    if (selectableEl) {
       e.preventDefault();
-      selectBlockElement(blockEl);
+      selectElement(selectableEl);
+
+      // ドラッグ移動の開始準備（機能3）
+      if (selectableEl.dataset.locked !== 'true') {
+        dragStartX = e.clientX;
+        dragStartY = e.clientY;
+        isDragging = true;
+        dragStarted = false;
+
+        // 現在のtranslate値を取得
+        const transform = iframeDoc.defaultView.getComputedStyle(selectableEl).transform;
+        dragElOrigTransform = selectableEl.style.transform || '';
+        const translateMatch = dragElOrigTransform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+        dragElStartX = translateMatch ? parseFloat(translateMatch[1]) : 0;
+        dragElStartY = translateMatch ? parseFloat(translateMatch[2]) : 0;
+      }
+    } else {
+      // 空エリアをクリック → 全選択解除
+      deselectAll();
     }
   });
 
-  // contentEditable入力時に状態保存（デバウンス付き）
+  /* ===== マウス移動（ドラッグ移動 / 機能3） ===== */
+  iframeDoc.addEventListener('mousemove', e => {
+    if (!isDragging || !selectedElement) return;
+    if (selectedElement.dataset.locked === 'true') { isDragging = false; return; }
+
+    const dx = e.clientX - dragStartX;
+    const dy = e.clientY - dragStartY;
+
+    // 閾値を超えたらドラッグ開始
+    if (!dragStarted && (Math.abs(dx) > dragThreshold || Math.abs(dy) > dragThreshold)) {
+      dragStarted = true;
+      selectedElement.classList.add('__dragging-shadow__');
+    }
+
+    if (dragStarted) {
+      const newX = dragElStartX + dx;
+      const newY = dragElStartY + dy;
+      selectedElement.style.transform = 'translate(' + newX + 'px, ' + newY + 'px)';
+      updateSelectionOverlay();
+
+      // 機能15: ガイドラインのチェック
+      checkGuideLines(selectedElement);
+    }
+  });
+
+  /* ===== マウスアップ（ドラッグ終了） ===== */
+  iframeDoc.addEventListener('mouseup', e => {
+    if (isDragging && dragStarted && selectedElement) {
+      selectedElement.classList.remove('__dragging-shadow__');
+      clearGuideLines();
+      saveState();
+    }
+    isDragging = false;
+    dragStarted = false;
+  });
+
+  /* ===== ダブルクリック → テキスト編集モード（機能1） ===== */
+  iframeDoc.addEventListener('dblclick', e => {
+    const el = e.target;
+    if (el.id === '__selection-overlay__' || (el.classList && el.classList.contains('sel-handle'))) return;
+
+    if (isTextElement(el)) {
+      e.preventDefault();
+      // テキスト編集モード開始
+      selectedElement = el;
+      isTextEditing = true;
+      el.contentEditable = 'true';
+      el.focus();
+
+      // フォーマットツールバーを表示（機能6-7）
+      showFormatToolbar(el);
+
+      // 選択情報をパネルに表示
+      updateSelectedInfo(el);
+    }
+  });
+
+  /* ===== contentEditable入力時に状態保存（デバウンス付き） ===== */
   iframeDoc.addEventListener('input', () => {
     clearTimeout(window._saveTimer);
     window._saveTimer = setTimeout(() => {
@@ -1308,6 +1830,188 @@ function setupIframeEvents() {
       refreshAllTabs();
     }, 500);
   });
+
+  /* ===== 右クリック → コンテキストメニュー（機能14） ===== */
+  iframeDoc.addEventListener('contextmenu', e => {
+    e.preventDefault();
+    const el = findSelectableElement(e.target);
+    if (el) {
+      contextTarget = el;
+      selectElement(el);
+    } else {
+      contextTarget = e.target;
+    }
+    showContextMenu(e);
+  });
+
+  /* ===== キーボードイベント（機能4: 矢印キー, 機能5: Delete） ===== */
+  iframeDoc.addEventListener('keydown', e => {
+    // Undo/Redo
+    handleUndoRedoKey(e);
+
+    // テキスト編集中はキーイベントを通す
+    if (isTextEditing) return;
+
+    if (!selectedElement) return;
+
+    // 機能4: 矢印キーでナッジ移動
+    if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key)) {
+      e.preventDefault();
+      if (selectedElement.dataset.locked === 'true') return;
+
+      const step = e.shiftKey ? 10 : 1;
+      const transform = selectedElement.style.transform || '';
+      const match = transform.match(/translate\(([-\d.]+)px,\s*([-\d.]+)px\)/);
+      let tx = match ? parseFloat(match[1]) : 0;
+      let ty = match ? parseFloat(match[2]) : 0;
+
+      if (e.key === 'ArrowUp') ty -= step;
+      if (e.key === 'ArrowDown') ty += step;
+      if (e.key === 'ArrowLeft') tx -= step;
+      if (e.key === 'ArrowRight') tx += step;
+
+      selectedElement.style.transform = 'translate(' + tx + 'px, ' + ty + 'px)';
+      updateSelectionOverlay();
+      saveState();
+    }
+
+    // 機能5: Delete/Backspaceで削除
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+      e.preventDefault();
+      if (selectedElement.dataset.locked === 'true') {
+        showToast('ロック中の要素は削除できません');
+        return;
+      }
+      // 子要素が多い場合は確認
+      if (selectedElement.children.length > 3) {
+        if (!confirm('この要素には子要素が含まれています。削除しますか？')) return;
+      }
+      const el = selectedElement;
+      deselectAll();
+      el.remove();
+      saveState();
+      detectSections();
+      renderSidebar();
+      refreshAllTabs();
+      adjustIframeHeight();
+      showToast('要素を削除しました');
+    }
+
+    // Escapeキーで選択解除
+    if (e.key === 'Escape') {
+      deselectAll();
+    }
+  });
+
+  // スクロール時にオーバーレイの位置を更新
+  iframeDoc.addEventListener('scroll', () => {
+    if (selectedElement && !isTextEditing) {
+      updateSelectionOverlay();
+    }
+    updateMinimapViewport();
+  });
+
+  // 機能16: Ctrl+マウスホイールでズーム
+  iframeDoc.addEventListener('wheel', e => {
+    if (e.ctrlKey || e.metaKey) {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        zoomIn();
+      } else {
+        zoomOut();
+      }
+    }
+  }, { passive: false });
+}
+
+/* ===== 選択可能な要素を見つける ===== */
+function findSelectableElement(el) {
+  if (!el || el === iframeDoc.body || el === iframeDoc.documentElement) return null;
+  if (el.id === '__selection-overlay__' || (el.classList && el.classList.contains('sel-handle'))) return null;
+  if (el.classList && (el.classList.contains('__guide-line__') || el.classList.contains('__guide-line-h__') || el.classList.contains('__guide-line-v__'))) return null;
+
+  // テキスト要素はそのまま返す
+  if (isTextElement(el)) return el;
+
+  // ブロック要素を探す
+  const blockEl = findSelectableBlock(el);
+  if (blockEl) return blockEl;
+
+  return null;
+}
+
+/* ===== 要素の選択（機能1） ===== */
+function selectElement(el) {
+  // 以前の選択を解除
+  if (selectedElement && selectedElement !== el) {
+    if (isTextEditing) {
+      selectedElement.contentEditable = 'false';
+      isTextEditing = false;
+      hideFormatToolbar();
+    }
+  }
+
+  selectedElement = el;
+  selectedTextEl = el; // 互換性のため
+
+  // 選択オーバーレイを更新
+  updateSelectionOverlay();
+
+  // タブをテキストタブに切替
+  switchTab('tab-text');
+
+  // 選択情報をパネルに表示
+  updateSelectedInfo(el);
+}
+
+/* ===== 選択情報パネルの更新 ===== */
+function updateSelectedInfo(el) {
+  const info = document.getElementById('selected-text-info');
+  const tag = document.getElementById('selected-text-tag');
+  const preview = document.getElementById('selected-text-preview');
+  info.classList.add('show');
+  tag.textContent = '<' + el.tagName.toLowerCase() + '>' + (el.className && typeof el.className === 'string' ? '.' + el.className.toString().split(' ')[0] : '');
+  const txt = el.textContent.trim();
+  preview.textContent = txt.substring(0, 100) + (txt.length > 100 ? '...' : '') || '（テキストなし）';
+
+  // フォントサイズを取得
+  const cs = iframeDoc.defaultView.getComputedStyle(el);
+  document.getElementById('text-fontsize').value = parseInt(cs.fontSize) || 16;
+
+  // 背景色を取得（機能8）
+  const bgColor = rgbToHex(cs.backgroundColor);
+  document.getElementById('bg-color-picker').value = bgColor || '#ffffff';
+
+  // 角丸を取得（機能9）
+  const br = parseInt(cs.borderRadius) || 0;
+  document.getElementById('border-radius-slider').value = br;
+  document.getElementById('border-radius-value').textContent = br + 'px';
+
+  // ロック状態（機能17）
+  const lockBtn = document.getElementById('lock-toggle-btn');
+  if (el.dataset.locked === 'true') {
+    lockBtn.innerHTML = '&#128274; ロック中';
+    lockBtn.style.background = '#fef3c7';
+    lockBtn.style.borderColor = '#fbbf24';
+  } else {
+    lockBtn.innerHTML = '&#128275; ロック解除';
+    lockBtn.style.background = '#fff';
+    lockBtn.style.borderColor = '#ddd';
+  }
+}
+
+/* ===== 全選択解除 ===== */
+function deselectAll() {
+  if (isTextEditing && selectedElement) {
+    selectedElement.contentEditable = 'false';
+    isTextEditing = false;
+    hideFormatToolbar();
+  }
+  selectedElement = null;
+  selectedTextEl = null;
+  hideSelectionOverlay();
+  document.getElementById('selected-text-info').classList.remove('show');
+  hideContextMenu();
 }
 
 /* ===== テキスト要素かどうかの判定 ===== */
@@ -1324,45 +2028,6 @@ function isTextElement(el) {
   return false;
 }
 
-/* ===== テキスト要素の選択 ===== */
-function selectTextElement(el) {
-  // 以前の選択を解除
-  if (selectedTextEl) {
-    selectedTextEl.contentEditable = 'false';
-    selectedTextEl.style.outline = '';
-    selectedTextEl.style.outlineOffset = '';
-  }
-  selectedTextEl = el;
-  el.contentEditable = 'true';
-  el.style.outline = '2px solid #2563eb';
-  el.style.outlineOffset = '2px';
-  el.focus();
-
-  // タブをテキストタブに切替
-  switchTab('tab-text');
-
-  // 選択情報を表示
-  const info = document.getElementById('selected-text-info');
-  const tag = document.getElementById('selected-text-tag');
-  const preview = document.getElementById('selected-text-preview');
-  info.classList.add('show');
-  tag.textContent = '<' + el.tagName.toLowerCase() + '>' + (el.className ? '.' + el.className.toString().split(' ')[0] : '');
-  preview.textContent = el.textContent.substring(0, 100) + (el.textContent.length > 100 ? '...' : '');
-
-  // フォントサイズを取得
-  const cs = iframeDoc.defaultView.getComputedStyle(el);
-  document.getElementById('text-fontsize').value = parseInt(cs.fontSize) || 16;
-
-  // blur時に編集モードを解除して状態保存
-  el.addEventListener('blur', function handler() {
-    el.contentEditable = 'false';
-    el.style.outline = '';
-    el.style.outlineOffset = '';
-    el.removeEventListener('blur', handler);
-    saveState();
-  }, { once: true });
-}
-
 /* ===== ブロック要素の選択（画像コンテナ・div等） ===== */
 function findSelectableBlock(el) {
   /* bodyやsectionレベルの巨大要素は選択対象外 */
@@ -1371,100 +2036,125 @@ function findSelectableBlock(el) {
   while (target && target !== iframeDoc.body) {
     if (skipTags.includes(target.tagName)) return null;
     /* 適度なサイズのブロック要素を見つける */
-    const style = iframeDoc.defaultView.getComputedStyle(target);
-    if (['block','flex','grid','inline-block'].includes(style.display) && target.offsetHeight < 600) {
-      return target;
-    }
+    try {
+      const style = iframeDoc.defaultView.getComputedStyle(target);
+      if (['block','flex','grid','inline-block'].includes(style.display) && target.offsetHeight < 600) {
+        return target;
+      }
+    } catch(e) {}
     target = target.parentElement;
   }
   return null;
 }
 
-function selectBlockElement(el) {
-  /* テキスト選択と同じUIを再利用 */
-  if (selectedTextEl) {
-    selectedTextEl.contentEditable = 'false';
-    selectedTextEl.style.outline = '';
-    selectedTextEl.style.outlineOffset = '';
-  }
-  selectedTextEl = el;
-  el.style.outline = '2px solid #2563eb';
-  el.style.outlineOffset = '2px';
-
-  switchTab('tab-text');
-  const info = document.getElementById('selected-text-info');
-  const tag = document.getElementById('selected-text-tag');
-  const preview = document.getElementById('selected-text-preview');
-  info.classList.add('show');
-  tag.textContent = '<' + el.tagName.toLowerCase() + '>' + (el.className ? '.' + el.className.toString().split(' ')[0] : '');
-  const txt = el.textContent.trim();
-  preview.textContent = txt.substring(0, 80) + (txt.length > 80 ? '...' : '') || '（テキストなし）';
-
-  const cs = iframeDoc.defaultView.getComputedStyle(el);
-  document.getElementById('text-fontsize').value = parseInt(cs.fontSize) || 16;
-}
-
 /* ===== ブロック操作（削除・複製・非表示） ===== */
 function deleteSelectedBlock() {
-  if (!selectedTextEl) { showToast('要素を選択してください'); return; }
-  const el = selectedTextEl;
+  if (!selectedElement) { showToast('要素を選択してください'); return; }
+  if (selectedElement.dataset.locked === 'true') { showToast('ロック中の要素は削除できません'); return; }
+  const el = selectedElement;
   const tag = el.tagName.toLowerCase();
   const text = el.textContent.trim().substring(0, 30);
-  if (!confirm('「' + text + '…」（<' + tag + '>）を削除しますか？')) return;
+  if (!confirm('「' + text + '...」（<' + tag + '>）を削除しますか？')) return;
+  deselectAll();
   el.remove();
-  selectedTextEl = null;
-  document.getElementById('selected-text-info').classList.remove('show');
   saveState();
+  detectSections();
+  renderSidebar();
   refreshAllTabs();
+  adjustIframeHeight();
   showToast('ブロックを削除しました');
 }
 
 function duplicateSelectedBlock() {
-  if (!selectedTextEl) { showToast('要素を選択してください'); return; }
-  const clone = selectedTextEl.cloneNode(true);
+  if (!selectedElement) { showToast('要素を選択してください'); return; }
+  const clone = selectedElement.cloneNode(true);
   clone.contentEditable = 'false';
   clone.style.outline = '';
   clone.style.outlineOffset = '';
-  selectedTextEl.after(clone);
+  clone.removeAttribute('data-locked');
+  selectedElement.after(clone);
   saveState();
   showToast('ブロックを複製しました');
 }
 
 function hideSelectedBlock() {
-  if (!selectedTextEl) { showToast('要素を選択してください'); return; }
-  selectedTextEl.style.display = 'none';
-  selectedTextEl.contentEditable = 'false';
-  selectedTextEl.style.outline = '';
-  selectedTextEl = null;
-  document.getElementById('selected-text-info').classList.remove('show');
+  if (!selectedElement) { showToast('要素を選択してください'); return; }
+  if (selectedElement.dataset.locked === 'true') { showToast('ロック中の要素は非表示にできません'); return; }
+  const el = selectedElement;
+  deselectAll();
+  el.style.display = 'none';
   saveState();
   showToast('ブロックを非表示にしました（Undoで戻せます）');
 }
 
 /* ===== テキスト色の適用 ===== */
 function applyTextColor(color) {
-  if (!selectedTextEl) return;
+  if (!selectedElement) return;
   if (color) {
-    selectedTextEl.style.color = color;
+    selectedElement.style.color = color;
   } else {
-    selectedTextEl.style.removeProperty('color');
+    selectedElement.style.removeProperty('color');
+  }
+  saveState();
+}
+
+/* ===== 機能8: 背景色の適用 ===== */
+function applyBgColor(color) {
+  if (!selectedElement) return;
+  if (color === 'transparent') {
+    selectedElement.style.removeProperty('background-color');
+    selectedElement.style.backgroundColor = 'transparent';
+  } else {
+    selectedElement.style.backgroundColor = color;
   }
   saveState();
 }
 
 /* ===== フォントサイズ変更 ===== */
 document.getElementById('text-fontsize').addEventListener('change', e => {
-  if (!selectedTextEl) return;
-  selectedTextEl.style.fontSize = e.target.value + 'px';
+  if (!selectedElement) return;
+  selectedElement.style.fontSize = e.target.value + 'px';
   saveState();
 });
 
 /* ===== カスタムカラー変更 ===== */
 document.getElementById('text-custom-color').addEventListener('input', e => {
-  if (!selectedTextEl) return;
-  selectedTextEl.style.color = e.target.value;
+  if (!selectedElement) return;
+  selectedElement.style.color = e.target.value;
   saveState();
 });
+
+/* ===== 機能8: 背景色ピッカー ===== */
+document.getElementById('bg-color-picker').addEventListener('input', e => {
+  if (!selectedElement) return;
+  selectedElement.style.backgroundColor = e.target.value;
+  saveState();
+});
+
+/* ===== 機能9: 角丸スライダー ===== */
+document.getElementById('border-radius-slider').addEventListener('input', e => {
+  if (!selectedElement) return;
+  const val = e.target.value;
+  selectedElement.style.borderRadius = val + 'px';
+  document.getElementById('border-radius-value').textContent = val + 'px';
+});
+document.getElementById('border-radius-slider').addEventListener('change', e => {
+  saveState();
+});
+
+/* ===== 機能17: ロック切替 ===== */
+function toggleLockSelected() {
+  if (!selectedElement) { showToast('要素を選択してください'); return; }
+  if (selectedElement.dataset.locked === 'true') {
+    selectedElement.removeAttribute('data-locked');
+    showToast('ロックを解除しました');
+  } else {
+    selectedElement.dataset.locked = 'true';
+    showToast('要素をロックしました');
+  }
+  updateSelectedInfo(selectedElement);
+  saveState();
+}
 
 /* ===== 画像置換処理 ===== */
 document.getElementById('img-replace-input').addEventListener('change', e => {
@@ -1481,6 +2171,438 @@ document.getElementById('img-replace-input').addEventListener('change', e => {
   reader.readAsDataURL(file);
   e.target.value = '';
 });
+
+/* =====================================================
+   機能6-7: フォーマットツールバー
+   ===================================================== */
+function showFormatToolbar(el) {
+  const toolbar = document.getElementById('format-toolbar');
+  // 要素の位置をiframe座標系からページ座標系に変換
+  const iframeRect = previewIframe.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
+
+  // iframeのスケールを考慮
+  const transformVal = previewIframe.style.transform;
+  const scaleMatch = transformVal.match(/scale\(([\d.]+)\)/);
+  const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+  const top = iframeRect.top + (elRect.top * scale) - 40;
+  const left = iframeRect.left + (elRect.left * scale);
+
+  toolbar.style.top = Math.max(0, top) + 'px';
+  toolbar.style.left = Math.max(0, left) + 'px';
+  toolbar.classList.add('show');
+}
+
+function hideFormatToolbar() {
+  document.getElementById('format-toolbar').classList.remove('show');
+}
+
+/* ===== フォーマット実行（太字・斜体・下線） ===== */
+function execFormat(command) {
+  if (!iframeDoc || !isTextEditing) return;
+  iframeDoc.execCommand(command, false, null);
+  selectedElement.focus();
+}
+
+/* ===== テキスト揃え ===== */
+function execAlign(align) {
+  if (!selectedElement) return;
+  selectedElement.style.textAlign = align;
+  saveState();
+}
+
+/* =====================================================
+   機能14: コンテキストメニュー
+   ===================================================== */
+function showContextMenu(e) {
+  const menu = document.getElementById('context-menu');
+  // iframeの位置を考慮
+  const iframeRect = previewIframe.getBoundingClientRect();
+  const transformVal = previewIframe.style.transform;
+  const scaleMatch = transformVal.match(/scale\(([\d.]+)\)/);
+  const scale = scaleMatch ? parseFloat(scaleMatch[1]) : 1;
+
+  const x = iframeRect.left + (e.clientX * scale);
+  const y = iframeRect.top + (e.clientY * scale);
+
+  menu.style.left = x + 'px';
+  menu.style.top = y + 'px';
+  menu.classList.add('show');
+}
+
+function hideContextMenu() {
+  document.getElementById('context-menu').classList.remove('show');
+}
+
+/* ===== コンテキストメニュー操作関数 ===== */
+function ctxCopy() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  copiedHTML = contextTarget.outerHTML;
+  showToast('HTMLをコピーしました');
+}
+
+function ctxPaste() {
+  hideContextMenu();
+  if (!contextTarget || !copiedHTML) { showToast('貼り付けるデータがありません'); return; }
+  const temp = iframeDoc.createElement('div');
+  temp.innerHTML = copiedHTML;
+  const newEl = temp.firstElementChild;
+  if (newEl) {
+    contextTarget.after(newEl);
+    saveState();
+    refreshAllTabs();
+    showToast('貼り付けました');
+  }
+}
+
+function ctxDuplicate() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  const clone = contextTarget.cloneNode(true);
+  clone.removeAttribute('contenteditable');
+  clone.removeAttribute('data-locked');
+  contextTarget.after(clone);
+  saveState();
+  refreshAllTabs();
+  showToast('要素を複製しました');
+}
+
+function ctxDelete() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  if (contextTarget.dataset && contextTarget.dataset.locked === 'true') {
+    showToast('ロック中の要素は削除できません');
+    return;
+  }
+  if (contextTarget === selectedElement) deselectAll();
+  contextTarget.remove();
+  saveState();
+  detectSections();
+  renderSidebar();
+  refreshAllTabs();
+  adjustIframeHeight();
+  showToast('要素を削除しました');
+}
+
+function ctxBringForward() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  const current = parseInt(iframeDoc.defaultView.getComputedStyle(contextTarget).zIndex) || 0;
+  contextTarget.style.zIndex = current + 1;
+  saveState();
+  showToast('z-indexを上げました: ' + (current + 1));
+}
+
+function ctxSendBackward() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  const current = parseInt(iframeDoc.defaultView.getComputedStyle(contextTarget).zIndex) || 0;
+  contextTarget.style.zIndex = Math.max(0, current - 1);
+  saveState();
+  showToast('z-indexを下げました: ' + Math.max(0, current - 1));
+}
+
+function ctxCopyStyle() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  const cs = iframeDoc.defaultView.getComputedStyle(contextTarget);
+  copiedStyleData = {
+    color: cs.color,
+    backgroundColor: cs.backgroundColor,
+    fontSize: cs.fontSize,
+    fontWeight: cs.fontWeight,
+    fontStyle: cs.fontStyle,
+    textDecoration: cs.textDecoration,
+    textAlign: cs.textAlign,
+    borderRadius: cs.borderRadius,
+    padding: cs.padding,
+    margin: cs.margin,
+    border: cs.border,
+    boxShadow: cs.boxShadow,
+    lineHeight: cs.lineHeight,
+    letterSpacing: cs.letterSpacing
+  };
+  showToast('スタイルをコピーしました');
+}
+
+function ctxPasteStyle() {
+  hideContextMenu();
+  if (!contextTarget || !copiedStyleData) { showToast('貼り付けるスタイルがありません'); return; }
+  Object.keys(copiedStyleData).forEach(prop => {
+    contextTarget.style[prop] = copiedStyleData[prop];
+  });
+  saveState();
+  showToast('スタイルを貼り付けました');
+}
+
+function ctxToggleLock() {
+  hideContextMenu();
+  if (!contextTarget) return;
+  if (contextTarget.dataset.locked === 'true') {
+    contextTarget.removeAttribute('data-locked');
+    showToast('ロックを解除しました');
+  } else {
+    contextTarget.dataset.locked = 'true';
+    showToast('要素をロックしました');
+  }
+  if (contextTarget === selectedElement) {
+    updateSelectedInfo(selectedElement);
+  }
+  saveState();
+}
+
+// 親ドキュメントでのクリック → コンテキストメニュー非表示
+document.addEventListener('click', e => {
+  if (!e.target.closest('.context-menu')) {
+    hideContextMenu();
+  }
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideContextMenu();
+});
+
+/* =====================================================
+   機能15: ガイドライン（スナップ）
+   ===================================================== */
+function checkGuideLines(el) {
+  if (!iframeDoc) return;
+  clearGuideLines();
+
+  const rect = el.getBoundingClientRect();
+  const scrollX = iframeDoc.defaultView.pageXOffset || iframeDoc.documentElement.scrollLeft;
+  const scrollY = iframeDoc.defaultView.pageYOffset || iframeDoc.documentElement.scrollTop;
+
+  const elLeft = rect.left + scrollX;
+  const elRight = rect.right + scrollX;
+  const elTop = rect.top + scrollY;
+  const elBottom = rect.bottom + scrollY;
+  const elCenterX = (elLeft + elRight) / 2;
+  const elCenterY = (elTop + elBottom) / 2;
+
+  const snapThreshold = 5;
+  const allElements = iframeDoc.body.querySelectorAll('*:not(#__selection-overlay__):not(.__guide-line__):not(script):not(style)');
+
+  allElements.forEach(other => {
+    if (other === el || other.contains(el) || el.contains(other)) return;
+    if (other.id === '__selection-overlay__') return;
+    if (other.offsetWidth === 0 || other.offsetHeight === 0) return;
+
+    try {
+      const oRect = other.getBoundingClientRect();
+      const oLeft = oRect.left + scrollX;
+      const oRight = oRect.right + scrollX;
+      const oTop = oRect.top + scrollY;
+      const oBottom = oRect.bottom + scrollY;
+      const oCenterX = (oLeft + oRight) / 2;
+      const oCenterY = (oTop + oBottom) / 2;
+
+      // 左端揃え
+      if (Math.abs(elLeft - oLeft) < snapThreshold) {
+        showGuideLine('v', oLeft);
+      }
+      // 右端揃え
+      if (Math.abs(elRight - oRight) < snapThreshold) {
+        showGuideLine('v', oRight);
+      }
+      // 中央縦揃え
+      if (Math.abs(elCenterX - oCenterX) < snapThreshold) {
+        showGuideLine('v', oCenterX);
+      }
+      // 上端揃え
+      if (Math.abs(elTop - oTop) < snapThreshold) {
+        showGuideLine('h', oTop);
+      }
+      // 下端揃え
+      if (Math.abs(elBottom - oBottom) < snapThreshold) {
+        showGuideLine('h', oBottom);
+      }
+      // 中央横揃え
+      if (Math.abs(elCenterY - oCenterY) < snapThreshold) {
+        showGuideLine('h', oCenterY);
+      }
+    } catch(e) {}
+  });
+}
+
+function showGuideLine(type, pos) {
+  if (!iframeDoc) return;
+  const line = iframeDoc.createElement('div');
+  line.className = '__guide-line__';
+  if (type === 'h') {
+    line.classList.add('__guide-line-h__');
+    line.style.top = pos + 'px';
+  } else {
+    line.classList.add('__guide-line-v__');
+    line.style.left = pos + 'px';
+  }
+  iframeDoc.body.appendChild(line);
+  guideLines.push(line);
+}
+
+function clearGuideLines() {
+  guideLines.forEach(line => {
+    if (line.parentNode) line.parentNode.removeChild(line);
+  });
+  guideLines = [];
+}
+
+/* =====================================================
+   機能10-13: 挿入メニュー
+   ===================================================== */
+// 挿入メニューの開閉
+document.getElementById('insert-menu-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  const menu = document.getElementById('insert-menu');
+  menu.classList.toggle('show');
+});
+document.addEventListener('click', e => {
+  if (!e.target.closest('.insert-menu-wrapper')) {
+    document.getElementById('insert-menu').classList.remove('show');
+  }
+});
+
+/* ===== 挿入位置を取得するヘルパー ===== */
+function getInsertTarget() {
+  if (!iframeDoc) return null;
+  // 選択中のセクションがあればその後に挿入
+  if (selectedSectionIdx >= 0 && sections[selectedSectionIdx]) {
+    return sections[selectedSectionIdx];
+  }
+  // 選択中の要素があればその後に挿入
+  if (selectedElement) return selectedElement;
+  // なければbodyの末尾
+  return null;
+}
+
+function insertAfterTarget(newEl) {
+  const target = getInsertTarget();
+  if (target) {
+    target.after(newEl);
+  } else {
+    const container = iframeDoc.querySelector('main') || iframeDoc.body;
+    container.appendChild(newEl);
+  }
+  document.getElementById('insert-menu').classList.remove('show');
+  saveState();
+  detectSections();
+  renderSidebar();
+  refreshAllTabs();
+  adjustIframeHeight();
+}
+
+/* ===== 機能10: テキストブロック挿入 ===== */
+function insertTextBlock() {
+  if (!iframeDoc) return;
+  const div = iframeDoc.createElement('div');
+  div.style.padding = '20px';
+  div.style.fontSize = '16px';
+  div.style.lineHeight = '1.8';
+  div.style.color = '#333';
+  div.textContent = 'ここにテキストを入力してください。ダブルクリックで編集できます。';
+  insertAfterTarget(div);
+  showToast('テキストブロックを挿入しました');
+}
+
+/* ===== 機能11: 画像挿入 ===== */
+function insertImage() {
+  document.getElementById('insert-menu').classList.remove('show');
+  document.getElementById('insert-img-input').click();
+}
+
+document.getElementById('insert-img-input').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file || !iframeDoc) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = iframeDoc.createElement('img');
+    img.src = ev.target.result;
+    img.style.maxWidth = '100%';
+    img.style.height = 'auto';
+    img.style.display = 'block';
+    img.style.margin = '20px auto';
+    img.alt = file.name;
+    insertAfterTarget(img);
+    showToast('画像を挿入しました');
+  };
+  reader.readAsDataURL(file);
+  e.target.value = '';
+});
+
+/* ===== 機能12: ボタン挿入 ===== */
+function insertButton() {
+  if (!iframeDoc) return;
+  const a = iframeDoc.createElement('a');
+  a.href = '#';
+  a.textContent = 'ボタンテキスト';
+  a.style.display = 'inline-block';
+  a.style.padding = '16px 48px';
+  a.style.backgroundColor = '#2563eb';
+  a.style.color = '#fff';
+  a.style.fontSize = '18px';
+  a.style.fontWeight = '700';
+  a.style.borderRadius = '50px';
+  a.style.textDecoration = 'none';
+  a.style.textAlign = 'center';
+  a.style.margin = '20px auto';
+  // ブロックレベルの親divで中央寄せ
+  const wrapper = iframeDoc.createElement('div');
+  wrapper.style.textAlign = 'center';
+  wrapper.style.padding = '20px';
+  wrapper.appendChild(a);
+  insertAfterTarget(wrapper);
+  showToast('ボタンを挿入しました');
+}
+
+/* ===== 機能13: 区切り線挿入 ===== */
+function insertDivider() {
+  if (!iframeDoc) return;
+  const hr = iframeDoc.createElement('hr');
+  hr.style.border = 'none';
+  hr.style.borderTop = '1px solid #e5e7eb';
+  hr.style.margin = '40px auto';
+  hr.style.maxWidth = '600px';
+  insertAfterTarget(hr);
+  showToast('区切り線を挿入しました');
+}
+
+/* =====================================================
+   機能16: ズームコントロール
+   ===================================================== */
+function zoomIn() {
+  if (zoomLevel >= 200) return;
+  zoomLevel = Math.min(200, zoomLevel + 10);
+  applyZoom();
+}
+
+function zoomOut() {
+  if (zoomLevel <= 25) return;
+  zoomLevel = Math.max(25, zoomLevel - 10);
+  applyZoom();
+}
+
+function applyZoom() {
+  document.getElementById('zoom-level').textContent = zoomLevel + '%';
+  // ズームはiframe内のコンテンツのスケールに影響する
+  // レスポンシブモードのスケールと組み合わせる
+  setResponsiveMode(currentResponsiveWidth);
+}
+
+document.getElementById('zoom-in-btn').addEventListener('click', zoomIn);
+document.getElementById('zoom-out-btn').addEventListener('click', zoomOut);
+
+// 親ドキュメントでもCtrl+ホイールでズーム
+previewArea.addEventListener('wheel', e => {
+  if (e.ctrlKey || e.metaKey) {
+    e.preventDefault();
+    if (e.deltaY < 0) {
+      zoomIn();
+    } else {
+      zoomOut();
+    }
+  }
+}, { passive: false });
 
 /* =====================================================
    セクション検出アルゴリズム
@@ -1519,6 +2641,7 @@ function isVisibleBlockElement(el) {
   if (!el || !el.tagName) return false;
   const skip = ['SCRIPT','STYLE','LINK','META','NOSCRIPT','BR','HR'];
   if (skip.includes(el.tagName)) return false;
+  if (el.id === '__selection-overlay__') return false;
   try {
     const cs = iframeDoc.defaultView.getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden') return false;
@@ -1824,16 +2947,14 @@ function setResponsiveMode(width) {
   // iframeの実幅を設定
   previewIframe.style.width = width + 'px';
 
-  // コンテナ幅とスケール計算
-  if (width > availW) {
-    const scale = availW / width;
-    previewIframe.style.transform = 'scale(' + scale + ')';
-    previewIframe.style.transformOrigin = 'top left';
-    previewContainer.style.width = Math.floor(width * scale) + 'px';
-  } else {
-    previewIframe.style.transform = 'none';
-    previewContainer.style.width = width + 'px';
-  }
+  // ズーム倍率を考慮したスケール計算（機能16）
+  const zoomScale = zoomLevel / 100;
+  const baseScale = width > availW ? availW / width : 1;
+  const finalScale = baseScale * zoomScale;
+
+  previewIframe.style.transform = 'scale(' + finalScale + ')';
+  previewIframe.style.transformOrigin = 'top left';
+  previewContainer.style.width = Math.floor(width * finalScale) + 'px';
 
   // iframeの高さを自動調整
   adjustIframeHeight();
@@ -1895,6 +3016,16 @@ function redo() {
 
 /* ===== 状態復元後の共通処理 ===== */
 function afterStateRestore() {
+  // 選択状態をリセット
+  selectedElement = null;
+  selectedTextEl = null;
+  isTextEditing = false;
+  hideFormatToolbar();
+  document.getElementById('selected-text-info').classList.remove('show');
+
+  // オーバーレイを再作成
+  createSelectionOverlay();
+
   setupIframeEvents();
   detectSections();
   renderSidebar();
@@ -2254,6 +3385,8 @@ function extractColors() {
 
   allElements.forEach(el => {
     try {
+      // エディタ注入要素をスキップ
+      if (el.id === '__selection-overlay__' || el.classList.contains('__guide-line__')) return;
       const cs = iframeDoc.defaultView.getComputedStyle(el);
       const props = ['backgroundColor', 'color', 'borderTopColor'];
       props.forEach(prop => {
@@ -2326,6 +3459,7 @@ function globalReplaceColor(oldHex, newHex) {
 
   allElements.forEach(el => {
     try {
+      if (el.id === '__selection-overlay__' || el.classList.contains('__guide-line__')) return;
       const cs = iframeDoc.defaultView.getComputedStyle(el);
       // 背景色の置換
       if (rgbToHex(cs.backgroundColor) === oldHex) {
@@ -2547,6 +3681,13 @@ document.getElementById('download-btn').addEventListener('click', () => {
     el.style.outline = '';
     el.style.outlineOffset = '';
   });
+  // エディタが注入した要素を削除
+  const injectedCSS = iframeDoc.getElementById('__editor-injected-css__');
+  if (injectedCSS) injectedCSS.remove();
+  const overlay = iframeDoc.getElementById('__selection-overlay__');
+  if (overlay) overlay.remove();
+  // ガイドラインを削除
+  clearGuideLines();
 
   // 完全なHTMLを取得してダウンロード
   const serializer = new XMLSerializer();
@@ -2563,6 +3704,14 @@ document.getElementById('download-btn').addEventListener('click', () => {
   a.download = base + '_edited' + ext;
   a.click();
   URL.revokeObjectURL(url);
+
+  // 注入した要素を再追加（エディタ操作を続けられるように）
+  const style = iframeDoc.createElement('style');
+  style.id = '__editor-injected-css__';
+  style.textContent = getIframeInjectedCSS();
+  iframeDoc.head.appendChild(style);
+  createSelectionOverlay();
+
   showToast('HTMLファイルをダウンロードしました');
 });
 
@@ -2575,9 +3724,15 @@ document.getElementById('reload-btn').addEventListener('click', () => {
   sections = [];
   selectedSectionIdx = -1;
   selectedTextEl = null;
+  selectedElement = null;
+  isTextEditing = false;
   undoStack = [];
   redoStack = [];
+  zoomLevel = 100;
+  document.getElementById('zoom-level').textContent = '100%';
   fileInput.value = '';
+  hideFormatToolbar();
+  hideContextMenu();
 });
 
 /* =====================================================
