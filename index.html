@@ -1026,6 +1026,14 @@ body {
               <input type="color" id="text-custom-color" value="#000000" style="width:28px;height:24px;border:1px solid #ddd;border-radius:3px;cursor:pointer;vertical-align:middle;">
               <button class="color-btn color-btn-reset" onclick="applyTextColor('')">リセット</button>
             </div>
+            <div style="margin-top:12px;padding-top:12px;border-top:1px solid #eee;">
+              <div class="panel-label">ブロック操作</div>
+              <div style="display:flex;gap:6px;margin-top:4px;">
+                <button onclick="duplicateSelectedBlock()" style="flex:1;padding:6px;border:1px solid #90caf9;background:#e3f2fd;color:#1565c0;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">+ 複製</button>
+                <button onclick="hideSelectedBlock()" style="flex:1;padding:6px;border:1px solid #ffe0b2;background:#fff3e0;color:#e65100;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">非表示</button>
+                <button onclick="deleteSelectedBlock()" style="flex:1;padding:6px;border:1px solid #ef9a9a;background:#fce4ec;color:#c62828;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;">削除</button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -1281,6 +1289,14 @@ function setupIframeEvents() {
     if (isTextElement(el)) {
       e.preventDefault();
       selectTextElement(el);
+      return;
+    }
+
+    // テキスト以外のブロック要素もクリックで選択可能にする（削除用）
+    const blockEl = findSelectableBlock(el);
+    if (blockEl) {
+      e.preventDefault();
+      selectBlockElement(blockEl);
     }
   });
 
@@ -1345,6 +1361,84 @@ function selectTextElement(el) {
     el.removeEventListener('blur', handler);
     saveState();
   }, { once: true });
+}
+
+/* ===== ブロック要素の選択（画像コンテナ・div等） ===== */
+function findSelectableBlock(el) {
+  /* bodyやsectionレベルの巨大要素は選択対象外 */
+  const skipTags = ['HTML','BODY','MAIN','HEADER','FOOTER','SECTION','ARTICLE','NAV'];
+  let target = el;
+  while (target && target !== iframeDoc.body) {
+    if (skipTags.includes(target.tagName)) return null;
+    /* 適度なサイズのブロック要素を見つける */
+    const style = iframeDoc.defaultView.getComputedStyle(target);
+    if (['block','flex','grid','inline-block'].includes(style.display) && target.offsetHeight < 600) {
+      return target;
+    }
+    target = target.parentElement;
+  }
+  return null;
+}
+
+function selectBlockElement(el) {
+  /* テキスト選択と同じUIを再利用 */
+  if (selectedTextEl) {
+    selectedTextEl.contentEditable = 'false';
+    selectedTextEl.style.outline = '';
+    selectedTextEl.style.outlineOffset = '';
+  }
+  selectedTextEl = el;
+  el.style.outline = '2px solid #2563eb';
+  el.style.outlineOffset = '2px';
+
+  switchTab('tab-text');
+  const info = document.getElementById('selected-text-info');
+  const tag = document.getElementById('selected-text-tag');
+  const preview = document.getElementById('selected-text-preview');
+  info.classList.add('show');
+  tag.textContent = '<' + el.tagName.toLowerCase() + '>' + (el.className ? '.' + el.className.toString().split(' ')[0] : '');
+  const txt = el.textContent.trim();
+  preview.textContent = txt.substring(0, 80) + (txt.length > 80 ? '...' : '') || '（テキストなし）';
+
+  const cs = iframeDoc.defaultView.getComputedStyle(el);
+  document.getElementById('text-fontsize').value = parseInt(cs.fontSize) || 16;
+}
+
+/* ===== ブロック操作（削除・複製・非表示） ===== */
+function deleteSelectedBlock() {
+  if (!selectedTextEl) { showToast('要素を選択してください'); return; }
+  const el = selectedTextEl;
+  const tag = el.tagName.toLowerCase();
+  const text = el.textContent.trim().substring(0, 30);
+  if (!confirm('「' + text + '…」（<' + tag + '>）を削除しますか？')) return;
+  el.remove();
+  selectedTextEl = null;
+  document.getElementById('selected-text-info').classList.remove('show');
+  saveState();
+  refreshAllTabs();
+  showToast('ブロックを削除しました');
+}
+
+function duplicateSelectedBlock() {
+  if (!selectedTextEl) { showToast('要素を選択してください'); return; }
+  const clone = selectedTextEl.cloneNode(true);
+  clone.contentEditable = 'false';
+  clone.style.outline = '';
+  clone.style.outlineOffset = '';
+  selectedTextEl.after(clone);
+  saveState();
+  showToast('ブロックを複製しました');
+}
+
+function hideSelectedBlock() {
+  if (!selectedTextEl) { showToast('要素を選択してください'); return; }
+  selectedTextEl.style.display = 'none';
+  selectedTextEl.contentEditable = 'false';
+  selectedTextEl.style.outline = '';
+  selectedTextEl = null;
+  document.getElementById('selected-text-info').classList.remove('show');
+  saveState();
+  showToast('ブロックを非表示にしました（Undoで戻せます）');
 }
 
 /* ===== テキスト色の適用 ===== */
